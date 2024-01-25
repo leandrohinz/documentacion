@@ -35,6 +35,30 @@ db02.intranet.mydomain.net
 10.25.1.56
 10.25.1.57
 
+CREAR ARCHIVO DE INVENTARIO
+touch hosts.txt
+
+luego añadir los hosts ejemplo:
+
+[webservers]
+alpha.example.org
+beta.example.org
+192.168.1.100
+192.168.1.110
+
+[dbservers]
+db01.intranet.mydomain.net
+db02.intranet.mydomain.net
+10.25.1.56
+10.25.1.57
+
+PINGEAR SOLO LOS WEBSERVERS DE UN ARCHIVO DE INVENTARIO DE HOSTS
+ansible -i hosts.txt webservers -m ping 
+
+EJECUTAR PLAYBOOK CONTRA UN ARCHIVO DE INVENTARIO:
+
+ansible-playbook -i hosts.txt playbook-handler.yml -K
+
 +++++++++++++++++++++ comandos de una tarea - ad hoc+++++++++++++++++++
 
 SABER SI UN HOST ESTA LISTO:
@@ -47,11 +71,88 @@ ansible makigas-es -m ping -i host.txt #archivo de host debe existir y tener den
 EJECUTAR COMANDOS ADHOC EN SERVER REMOTOS
 ansible makigas.es -a "echo hola" #si no le ponemos el -m toma el modulo por omision shell
 ansible makigas.es -a "ls /"
+ansible webservers -m command -a "lsb release -a"
 
 ------------------ modulos ---------------
+MODULO APT
 ansible makigas.es -m apt -a "name=vim state=present" -b -K
 <introducir contraseña del root remoto>
 
+TAMBIEN APLICA PARA ADMINISTRAR SERVICIOS!!!!!!!!!!!!!
+
 +++++++++++++++++++++++ comandos declarativos -  playbook ++++++
 CORRER PLAYBOOK:
-ansible-playbook tareas.yml
+ansible-playbook tareas.yml --ask-become-pass
+ansible-playbook tareas.yml -K #K es para el password
+ansible -i hosts.txt webservers -m ping -u vagrant ##la u es para especificarle un usuario, en este caso "vagrant#
+
+[WARNING]: provided hosts list is empty, only localhost is available. Note that
+the implicit localhost does not match 'all'
+
+$ ansible-playbook playbook.yml -i inventory.ini --ask-become-pass
+...
+BECOME password:
+
+$ ansible-playbook playbook.yml -i inventory.ini -e "ansible_become_password=p@$$w0rd"
+
+The better way is to use an an Ansible Vault to create a new file named password.yml with the encrypted sudo password:
+
+$ ansible-vault edit password.yml
+After providing a password for the Vault, the tool will open the password.yml file in a text editor where you can put your ansible_become_password:
+ansible_become_password: p@$$w0rd
+Save and exit. Next create a vault.txt file with the password that you used while creating the password.yml file, e.g:
+
+$ echo "vaultPassw0rd" > vault.txt
+Ensure permissions on vault.txt are such that no one else can access it and do not add this file to a source control:
+
+$ chmod 600 vault.txt
+$ echo "vault.txt" >> .gitignore
+Finally run your playbook as follows:
+
+$ ansible-playbook playbook.yml -i inventory.ini -e '@password.yml' \
+                                                 --vault-password-file=vault.txt
+
++++++++++++++++++++++ CFG++++++++++++++++++++
+RUTA POR DEFECTO:
+
+/etc/ansible/ansible.cfg
+
+puedes especificar muchos parametros:
+remote_user por ejemplo y setearle valores:
+[defaults]
+remote_user=vagrant
+
+tambien al ejecutar comandos se le puede especificar el archivo de configuracion:
+
+ANSIBLE_CONFIG=ansible.cfg ansible-playbook -i hosts.txt playbook.yml
+
+
+++++++++++++++++++++++ HANDLERS (notificar cuando se termine de ejecutar una tarea de manera satisfactoria (trigger)
+ +++++++++++++++++++++++++++++++
+
+---
+
+- hosts: localhost
+  remote_user: ubuntu
+  become: true
+  tasks:
+  - name: Instala Apache2
+    apt: name=apache2 state=present update_cache=true
+    notify:
+      - "Reinicia el servidor web"
+  handlers:
+  - name: Reinicia el servidor web
+    service: name=apache2 state=restarted
+
+
+CORRER:
+
+ansible-playbook -i /etc/ansible/hosts playbook-handler.yml -K
+
+++++++++++++++++ ansible automation platform +++++++++++++++++++
+resources -> templates (playbooks)
+credentials -> usuarios
+projects -> nombre,projecto y apuntar a un repo en github para tener los playbooks actualizados
+
+
+
