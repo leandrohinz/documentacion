@@ -1,0 +1,339 @@
+terraform-aws-key
+AKIA57XXQ6GYYFHZJGFP
+iZxEe4aH9NSp9Zpcm+r2z1ZRUjgZ2bxap38VMp/3
+
+export AWS_ACCESS_KEY_ID=AKIA57XXQ6GYYFHZJGFP
+export AWS_SECRET_ACCESS_KEY=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
+export KUBECONFIG=~/.kube/config
+
+listar las variables de ambiente y filtrar segun AWS
+env|grep AWS
+
+~/learn-terraform-aws-instance$ aws configure
+AWS Access Key ID [None]: AKIA57XXQ6GYYFHZJGFP
+AWS Secret Access Key [None]: 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
+Default region name [None]: us-west-1
+Default output format [None]: json
+
+terraform init
+terraform validate
+terraform fmt --recursive
+terraform plan
+terraform apply
+terraform destroy
+terraform show
+terraform state list
+
+tf code:
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.16"
+    }
+  }
+
+  required_version = ">= 1.2.0"
+}
+
+provider "aws" {
+  region = "us-west-2"
+
+}
+
+resource "aws_instance" "app_server" {
+  ami           = "ami-830c94e3"
+  instance_type = "t2.micro"
+
+  tags = {
+    #Name        = "ExampleAppServerInstance"
+    project     = "ramp-up-devops"
+    responsible = "leandro.hinestroza@psl-training"
+
+  }
+}
+
+resource "aws_s3_bucket" "my-bucket" {
+  bucket = "my-for-tags-example"
+  tags = {
+    #Name        = "ExampleAppServerInstance"
+    project     = "ramp-up-devops"
+    responsible = "leandro.hinestroza@psl-training"
+
+  } 
+}
+
+******************************************
+1.)ESCRIBIRLE A JUAN TORRES DE LAS CREDENCIALES
+2.)EN EL DIAGRAMA COLOCAR:
+VPC
+DOS SUBNETS (PUBLICA Y PRIVADA)
+LOAD BALANCER
+INSTANCIAS
+MICROSERVICIOS
+3.) COMO SE CREAN LOS SECURITY GROUPS EN TERRAFORMS EN AWS
+
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_security_group" "example" {
+  name        = "example"
+  description = "Example security group"
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "example"
+  }
+}
+*******************************************
+resource "aws_security_group" "allow_tls" {
+  name        = "allow_tls"
+  description = "Allow TLS inbound traffic"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description      = "TLS from VPC"
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
+    cidr_blocks      = [aws_vpc.main.cidr_block]
+    ipv6_cidr_blocks = [aws_vpc.main.ipv6_cidr_block]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = {
+    Name = "allow_tls"
+  }
+}
+
+*******************************************
+data "aws_security_group" "selected" {
+  id ="sg-000312648cb099634"
+}
+
+*******************************************
+resource "aws_vpc" "main" {
+  cidr_block       = "10.0.0.0/16"
+  instance_tenancy = "default"
+
+  tags = {
+    Name = "main"
+  }
+}
+*******************************************
+
+
+resource "aws_instance" "ec2" {
+  ami = var.ami
+  availability_zone = var.availability_zone
+  instance_type = var.instance_type
+
+  tags = merge(map("Name", var.name), var.tags)
+  volume_tags = merge(map("Name", var.name), var.tags)
+}
+
+
+********************************************
+CONNECT TO THE AWS INSTANCE
+chmod 400 KP-RampUp-LJH.pem
+ssh -i KP-RampUp-LJH.pem ubuntu@ec2-52-53-199-45.us-west-1.compute.amazonaws.com
+ssh -i KP-RampUp-LJH.pem ubuntu@ec2-18-144-11-136.us-west-1.compute.amazonaws.com
+
+URL RAMPUP
+https://psl-training.signin.aws.amazon.com/console
+
+
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_instance" "example" {
+  ami           = "ami-0c94855ba95c574c8"
+  instance_type = "t2.micro"
+
+  key_name = "my_key_pair"
+
+  tags = {
+    Name = "example-instance"
+  }
+}
+
+resource "aws_key_pair" "deployer" {
+  key_name   = "deployer-key"
+  public_key = file("~/.ssh/id_rsa.pub")
+}
+
+resource "aws_instance" "example" {
+  ami           = "ami-0c94855ba95c574c8"
+  instance_type = "t2.micro"
+
+  key_name = aws_key_pair.deployer.key_name
+
+  tags = {
+    Name = "example-instance"
+  }
+}
+
+***************************************************
+
+TO SET SCRIPT AS USER DATA 
+
+resource "aws_instance" "server_FRONTEND" {
+  ami           = "ami-0cbd40f694b804622"
+  instance_type = "t2.micro"
+  subnet_id     = "subnet-0088df5de3a4fe490"
+  vpc_security_group_ids = [aws_security_group.sg_AUTH-API.id,aws_security_group.sg_SSH-22.id]
+  key_name      = "KP-RampUp-LJH"
+
+  tags = {
+    Name        = "EC2-Rampup-FRONTEND-LJH"
+    project     = "ramp-up-devops"
+    responsible = "leandro.hinestroza"
+  }
+
+  volume_tags = {
+    Name        = "EC2-Rampup-FRONTEND-LJH"
+    project     = "ramp-up-devops"
+    responsible = "leandro.hinestroza"
+  }
+  user_data = file("${path.module}/script.sh")
+}
+
+SCRIPT:
+
+#!/bin/bash
+# Add Docker's official GPG key:
+sudo apt-get update
+sudo apt-get install ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+# Add the repository to Apt sources:
+echo \
+  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+#sudo docker run hello-world
+#sudo groupadd docker
+sudo usermod -aG docker $USER
+#newgrp docker
+#sudo systemctl enable docker.service
+#sudo systemctl enable containerd.service
+sudo reboot
+
+*******************************
+
+COMENTARIOS DE FELIPE:
+CODIGO DE TERRAFORMS:
+NO DEJAR VALORES QUEMADOS, ES DECIR ASIGNAR VARIABLES A TODO LO QUE SE PUEDA
+instances.tf (en este estarian las instancias)
+sg.tf (en este estarian los security groups)
+variables.tf (todos los valores no quemados, asignarle variables a todo)
+MODULOS: crear un modulo para los security groups y para las instancias
+
+
+
+****************************
+
+Cambiar en el main.tf anterior y colocar solo en la subnet publica el frontend y el resto todo en la privada.
+Investigar el tema del dynamic
+Investigar locals en terraforms
+en el original modificar el name del tag de los security groups para que haga match con el name del sg
+
+cerrar IAC
+Data en terraforms
+Ansible
+
+
+*****************************
+
+Investigar locals en terraforms!!!!!
+terraform {
+  required_providers {
+    azurerm = {
+      source = "hashicorp/azurerm"
+      version = "3.10.0"
+    }
+  }
+}
+
+provider "azurerm" {
+  subscription_id = "6912d7a0-bc28-459a-9407-33bbba641c07"
+  tenant_id = "70c0f6d9-7f3b-4425-a6b6-09b47643ec58"
+  client_id = "fb3eb97c-8679-488e-a4b4-5fd90299b7a2"
+  client_secret = "38o8Q~MsAPo59FK.Zsq0eQImB-vW2wrJznAUqc9V"
+  features {}  
+}
+
+locals {
+  resource_group_name="app-grp"
+  location="North Europe"
+  virtual_network={
+    name="app-network"
+    address_space="10.0.0.0/16"
+  }
+
+  subnets=[
+    {
+      name="subnetA"
+      address_prefix="10.0.0.0/24"
+    },
+    {
+      name="subnetB"
+      address_prefix="10.0.1.0/24"
+    }
+  ]
+}
+
+resource "azurerm_resource_group" "appgrp" {
+  name     = local.resource_group_name
+  location = local.location  
+}
+
+resource "azurerm_virtual_network" "appnetwork" {
+  name                = local.virtual_network.name
+  location            = local.location
+  resource_group_name = local.resource_group_name
+  address_space       = [local.virtual_network.address_space]  
+
+  subnet {
+    name           = local.subnets[0].name
+    address_prefix = local.subnets[0].address_prefix
+  }
+
+  subnet {
+    name           = local.subnets[1].name
+    address_prefix = local.subnets[1].address_prefix
+  }
+   depends_on = [
+     azurerm_resource_group.appgrp
+   ]
+  }
+
+TOKEN GITHUB
+
+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
+

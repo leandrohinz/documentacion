@@ -1,0 +1,61 @@
+## Bing
+Sure, here's an example of an Azure DevOps YAML pipeline that creates a Virtual Network (VNet) in an Azure subscription using Terraform:
+
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: TerraformInstaller@0
+  inputs:
+    terraformVersion: '0.15.1'
+
+- task: TerraformTaskV1@0
+  inputs:
+    provider: 'azurerm'
+    command: 'init'
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
+    backendServiceArm: '<Your Azure Resource Manager service connection>'
+    backendAzureRmResourceGroupName: '<Your resource group>'
+    backendAzureRmStorageAccountName: '<Your storage account>'
+    backendAzureRmContainerName: '<Your container>'
+    backendAzureRmKey: 'terraform.tfstate'
+
+- task: TerraformTaskV1@0
+  inputs:
+    provider: 'azurerm'
+    command: 'plan'
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
+    environmentServiceNameAzureRM: '<Your Azure Resource Manager service connection>'
+
+- task: TerraformTaskV1@0
+  inputs:
+    provider: 'azurerm'
+    command: 'apply'
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
+    environmentServiceNameAzureRM: '<Your Azure Resource Manager service connection>'
+
+In this pipeline, you need to replace the placeholders with your actual values. The TerraformInstaller@0 task is used to install the specified version of Terraform. The TerraformTaskV1@0 task is used to run various Terraform commands. The init command is used to initialize your Terraform configuration, the plan command creates an execution plan, and the apply command applies the desired changes.
+Please note that you need to have a main.tf file in your repository's root directory that contains the Terraform configuration for creating a VNet. Here's a simple example:
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_virtual_network" "example" {
+  name                = "example-network"
+  resource_group_name = azurerm_resource_group.example.name
+  location            = azurerm_resource_group.example.location
+  address_space       = ["10.0.0.0/16"]
+}
+
+resource "azurerm_resource_group" "example" {
+  name     = "example-resources"
+  location = "West Europe"
+}
+
+This configuration creates a new resource group and a VNet within it.
+Remember to replace <Your Azure Resource Manager service connection> with your actual Azure Resource Manager service connection name, and similarly for other placeholders.
+Please ensure you have the necessary permissions in your Azure subscription to create resources, and that your Azure DevOps has the necessary permissions to access your Azure subscription.

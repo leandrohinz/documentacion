@@ -1,0 +1,1018 @@
+En Kubernetes, un Service es una abstracción que define un conjunto lógico de Pods y una política por la cual acceder a ellos1. Los servicios en Kubernetes son esenciales para la comunicación entre diferentes partes de una aplicación. Aquí están los tipos principales de servicios en Kubernetes:
+
+ClusterIP: Este es el tipo de servicio predeterminado en Kubernetes. Expone el servicio en una dirección IP interna en el clúster, lo que significa que el servicio solo es accesible dentro del clúster.
+
+NodePort: Este tipo de servicio expone el servicio en el mismo puerto de cada nodo seleccionado en el clúster utilizando NAT. Hace que un servicio sea accesible desde fuera del clúster utilizando <NodeIP>:<NodePort>.
+
+LoadBalancer: Este tipo de servicio expone el servicio externamente utilizando el balanceador de carga de un proveedor de servicios en la nube. Los servicios NodePort y ClusterIP, a los que se dirige, se crean automáticamente.
+
+ExternalName: Este tipo de servicio permite definir un servicio en función de un nombre DNS existente. No se utiliza ningún tipo de proxy.
+
+Cada tipo de servicio tiene sus propios casos de uso y limitaciones. Elegir el tipo de servicio correcto depende de las necesidades específicas de tu aplicación y del entorno en el que se está ejecutando.
+
+install
+
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+minikube start
+alias kubectl="minikube kubectl --"
+
+*************************************
+dps (ver contedendores corriendo)
+di (ver repositorio de imagenes)
+minikube dashboard
+minikube dashboard --url
+minikube pause
+minikube unpause
+minikube stop
+minikube config set memory 9001
+minikube status
+minikube addons list
+minikube start
+minikube delete --all
+minikube service list
+kubectl version --client
+kubectl cluster-info
+kubectl get nodes
+kubectl get pods
+kubectl get po -A
+kubectl expose pods my-nginx --port=80 --target-port=80 --type='NodePort' --name=my-nginx-service
+kubectl get services
+minikube service my-nginx-service
+kubectl delete services my-nginx-service (-n ns-ljhh-k8s-local)
+kubectl delete pods my-nginx
+kubectl delete namespace ns-ljhh-k8s-local  
+kubectl exec -it -n <namespace> <pod Name> bash
+kubectl exec nginx-example -n ns-ljhh-k8s-local -- printenv
+kubectl get pods -o wide -A
+
+https://kubernetes.io/docs/reference/kubectl/cheatsheet/
+
+https://www.digitalocean.com/community/tutorials/how-to-use-minikube-for-local-kubernetes-development-and-testing
+
+minikube cp
+
+kubectl apply -f name_of_file.yaml
+
+minikube service nginx-example-service -n ns-ljhh-k8s-local
+
+-------------------------------
+troubleshooting
+
+wslfetch
+sudo apt install binfmt-support
+
+add: 
+[interop]
+enable=true
+appendWindowsPath=true
+
+to the wsl.conf file in /etc
+
+https://learn.microsoft.com/en-us/windows/wsl/wsl-config#wslconf
+https://ubuntu.com/tutorials/windows-and-ubuntu-interoperability-on-wsl2#2-install-ubuntu-on-wsl2
+https://github.com/wslutilities/wslu/issues/122
+https://learn.microsoft.com/en-us/windows/wsl/troubleshooting
+
+
+PREGUNTAR A FELIPE:
+COMO COPIAR UN ARCHIVO AL MASTER NODE
+minikube cp 1.pod.yaml /  
+R/ SE VALIDA CON minikube ssh, luego cd .., cd.. y el archivo queda en el root folder
+
+COMO ACCEDER A LOS FILES DE UN NODO 
+R/ SE VALIDA CON minikube ssh (https://pet2cattle.com/2022/05/minikube-ssh-node)
+
+COMO ACCEDER A LOS FILES DE UN CONTENEDOR/POD
+kubectl exec -it -n ns-ljhh-k8s-local nginx-example bash
+kubectl exec -it -n ns-ljhh-k8s-local nginx-example -- ls
+kubectl exec -it -n ns-ljhh-k8s-local nginx-example -- bash
+
+COMO CREAR NODOS
+minikube start --nodes 2 -p multinodo
+investigar crear nodos en minikube
+
+COMO CREAR LAS REDES E INTERCONECTAR NODOS
+https://www.youtube.com/watch?v=tA-660fqzUg&ab_channel=CulturaDevOps
+
+NAMESPACES
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ns-ljhh-k8s-local
+kubectl get namespaces
+parecido a los resource groups es una manera de administrar/estructurar mejor los recursos entre ambientes
+
+COMO DEJAR EL DASHBOARD PERSISTENTE?
+minikube dashboard --url
+minikube dashboard
+
+COMO ACCEDER A LOS PODS A CORRER COMANDOS
+kubectl exec -it -n ns-ljhh-k8s-local nginx-example -- bash 
+dentro de la shell se puede ejecutar cualquier comando
+
+COMO COPIAR ARCHIVOS ENTRE LOS PODS
+kubectl cp
+kubectl cp mynginx-ff886775c:/usr/share/nginx/html/index.html ~/desktop/index.html
+kubectl cp ~/desktop/index.html mynginx-ff886775c:/usr/share/nginx/html
+kubectl cp demo/mynginx-ff886775c-mzjz2:/usr/share/nginx/html/index.html ~/desktop/index.html  (demo is the namespace)
+minikube cp 1.pod.yaml /  
+https://kodekloud.com/blog/kubectl-cp/
+
+EXPONER UN SERVICIO EN MINIKUBE
+kubectl create deployment demo --image=httpd --port=80
+kubectl expose deployment demo
+
+
+CONSULTAR UNA URL DE UN SERVICIO EN MINIKUBE
+minikube service frontend-service --url -n ns-todo-app-k8s-local
+
+CONSULTAR DEPLOYMENTS
+kubectl get deployments -A
+
+PARA IMPRIMIR LAS VARIABLES DE AMBIENTE DE UN POD
+kubectl exec nginx-example -n ns-ljhh-k8s-local -- printenv
+
+PUERTOS (REVISAR)
+https://www.bmc.com/blogs/kubernetes-port-targetport-nodeport/
+Nodeport: service para comunicar los pods con los nodos y la salida a internet
+
+INVESTIGAR COMO PASARLE LAS VARIABLES DE AMBIENTE PARA PASARLE LA VARIABLE PORT DEL TUTORIAL
+spec:
+  containers:
+    - name: nginx-example
+      image: nginx
+      ports:
+        - containerPort: 80
+      env:
+      - name: PORT
+        value: "81"
+
+PARA ACTUALIZAR EL NODO, DEBEMOS PRIMERO MODIFICAR EL ARCHIVO DE MANIFIESTO 1.pod.yaml y luego correr nuevamente el kubectl apply -f 1.pod.yaml
+
+COMO CONFIGURAR UN LOAD BALANCER ENTRE LOS PODS? (INVESTIGAR REPLICAS) https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+DEPLOYMENTS? (INVESTIGAR) DEPLOYMENTS? (INVESTIGAR) https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+APLICAR UNA CONFIGURACION A TODOS LOS PODS? (INVESTIGAR Y SE HACE CON DEPLOYMENTS) https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+
+REINICIAR PODS
+kubectl exec POD_NAME -c CONTAINER_NAME -n NAMESPACE_NAME reboot
+
+STATEFUL SET?
+manejar aplicaciones que deben tener un estado interno para manejar, almacenamiento persistente y demas..bd: mysql, posgres..BUSCAR EJEMPLOS, en caso contrario que no necesites almacenamiento/volumenes persistentes usa DEPLOYMENT
+REPLICA SET? mantener la cantidad de replicas que le digamos en el deployment
+PROBES? se puede pasar en el deployment, BUSCAR EJEMPLO
+CONFIG MAPS , mapa de configuracion, deployment leer configmap (teniendo en cuenta el path) BUSCAR EJEMPLO
+COREDNS , donde se identifican mapeos ip - domains BUSCAR EJEMPLO
+SECRET? especificar valores sensibles a acceder desde un archivo al deployment BUSCAR EJEMPLO
+INGRESS? instalar nginx-controller, investigar, yaml BUSCAR EJEMPLO, mapear un dominio para acceder a los pods
+COMO SE CREAN OTROS MASTER NODES Y OTROS WORKER NODES? se hace cuando se crea el cluster tanto en aws como en azure
+https://labs.play-with-k8s.com/
+COMO SE CREAN PODS CON VARIAS CONTENEDORES ADENTRO EN YAML
+copiar el codigo varias veces segun caso de uso
+spec:
+      containers:
+      - name: frontend
+        image: leandrohinz/frontend:v1
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        - name: AUTH-API-ADDRESS
+          value: "http://127.0.0.1:8000"
+        - name: TODOS_API_ADDRESS
+          value: "http://127.0.0.1:8082"
+
+PREGUNTAR POR EL TEST DE WORD A FELIPE
+revisar con chatgpt o chat de bing todo lo que sean conceptos nuevos
+EJEMPLO EN PRODUCCION DE CLUSTER DE KUBERNETES?
+
+PENDIENTES:
+HACER EL DESPLIEGUE DE LOS PODS FALTANTES DE TODO-APP Y PONERLAS A FUNCIONAR
+IMPORTANTE: https://stackoverflow.com/questions/67209072/how-can-i-connect-to-kubernetes-pod-within-the-same-cluster-with-http-request
+
+TERRAFORMS Y KUBERNETES INVESTIGAR
+desplegar cluster
+crear nodos
+crear security groups
+
+**************************************
+
+# Apply the configuration in pod.json to a pod
+  kubectl apply -f ./pod.json
+  
+  # Apply resources from a directory containing kustomization.yaml - e.g. dir/kustomization.yaml
+  kubectl apply -k dir/
+  
+  # Apply the JSON passed into stdin to a pod
+  cat pod.json | kubectl apply -f -
+  
+  # Apply the configuration from all files that end with '.json'
+  kubectl apply -f '*.json'
+  
+  # Note: --prune is still in Alpha
+  # Apply the configuration in manifest.yaml that matches label app=nginx and delete all other resources that are not in
+the file and match label app=nginx
+  kubectl apply --prune -f manifest.yaml -l app=nginx
+  
+  # Apply the configuration in manifest.yaml and delete all the other config maps that are not in the file
+  kubectl apply --prune -f manifest.yaml --all --prune-allowlist=core/v1/ConfigMap
+
+Available Commands:
+  edit-last-applied   Edit latest last-applied-configuration annotations of a resource/object
+  set-last-applied    Set the last-applied-configuration annotation on a live object to match the contents of a file
+  view-last-applied   View the latest last-applied-configuration annotations of a resource/object
+
+Options:
+    --all=false:
+ Select all resources in the namespace of the specified resource types.
+
+    --allow-missing-template-keys=true:
+ If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to
+ golang and jsonpath output formats.
+
+    --cascade='background':
+ Must be "background", "orphan", or "foreground". Selects the deletion cascading strategy for the dependents
+ (e.g. Pods created by a ReplicationController). Defaults to background.
+
+    --dry-run='none':
+ Must be "none", "server", or "client". If client strategy, only print the object that would be sent, without
+ sending it. If server strategy, submit server-side request without persisting the resource.
+
+    --field-manager='kubectl-client-side-apply':
+ Name of the manager used to track field ownership.
+
+    -f, --filename=[]:
+ The files that contain the configurations to apply.
+
+    --force=false:
+ If true, immediately remove resources from API and bypass graceful deletion. Note that immediate deletion of
+ some resources may result in inconsistency or data loss and requires confirmation.
+
+    --force-conflicts=false:
+ If true, server-side apply will force the changes against conflicts.
+
+    --grace-period=-1:
+ Period of time in seconds given to the resource to terminate gracefully. Ignored if negative. Set to 1 for
+ immediate shutdown. Can only be set to 0 when --force is true (force deletion).
+
+    -k, --kustomize='':
+ Process a kustomization directory. This flag can't be used together with -f or -R.
+
+    --openapi-patch=true:
+ If true, use openapi to calculate diff when the openapi presents and the resource can be found in the openapi
+ spec. Otherwise, fall back to use baked-in types.
+
+    -o, --output='':
+ Output format. One of: (json, yaml, name, go-template, go-template-file, template, templatefile, jsonpath,
+ jsonpath-as-json, jsonpath-file).
+
+    --overwrite=true:
+ Automatically resolve conflicts between the modified and live configuration by using values from the modified
+ configuration
+
+    --prune=false:
+ Automatically delete resource objects, that do not appear in the configs and are created by either apply or
+ create --save-config. Should be used with either -l or --all.
+
+    --prune-allowlist=[]:
+ Overwrite the default allowlist with <group/version/kind> for --prune
+
+    -R, --recursive=false:
+ Process the directory used in -f, --filename recursively. Useful when you want to manage related manifests
+ organized within the same directory.
+
+    -l, --selector='':
+ Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2). Matching
+ objects must satisfy all of the specified label constraints.
+
+    --server-side=false:
+ If true, apply runs in the server instead of the client.
+
+    --show-managed-fields=false:
+ If true, keep the managedFields when printing objects in JSON or YAML format.
+
+    --template='':
+ Template string or path to template file to use when -o=go-template, -o=go-template-file. The template format
+ is golang templates [http://golang.org/pkg/text/template/#pkg-overview].
+
+    --timeout=0s:
+ The length of time to wait before giving up on a delete, zero means determine a timeout from the size of the
+ object
+
+    --validate='strict':
+ Must be one of: strict (or true), warn, ignore (or false).   "true" or "strict" will use a schema to validate
+ the input and fail the request if invalid. It will perform server side validation if ServerSideFieldValidation
+ is enabled on the api-server, but will fall back to less reliable client-side validation if not.   "warn" will
+ warn about unknown or duplicate fields without blocking the request if server-side field validation is enabled
+ on the API server, and behave as "ignore" otherwise.   "false" or "ignore" will not perform any schema
+ validation, silently dropping any unknown or duplicate fields.
+
+    --wait=false:
+ If true, wait for resources to be gone before returning. This waits for finalizers.
+
+Usage:
+  kubectl apply (-f FILENAME | -k DIRECTORY) [options]
+
+*********************************************************************************
+
+Para agregar nodos maestros y trabajadores adicionales en Kubernetes, puedes seguir los siguientes pasos:
+
+**Para agregar nodos maestros adicionales:**
+1. Debes usar un script `kube-up` con las siguientes banderas:
+   - `KUBE_REPLICATE_EXISTING_MASTER=true`: para crear una réplica de un maestro existente.
+   - `KUBE_GCE_ZONE=zone`: zona donde se ejecutará la réplica del maestro. Debe estar en la misma región que las zonas de otras réplicas¹.
+
+Aquí tienes un ejemplo de cómo replicar el maestro en un clúster compatible con alta disponibilidad existente:
+```
+$ KUBE_GCE_ZONE=europe-west1-c KUBE_REPLICATE_EXISTING_MASTER=true ./cluster/kube-up.sh
+```
+
+**Para agregar nodos trabajadores adicionales:**
+1. En uno de los nodos maestros actuales, genera el comando para los nodos trabajadores usando `kubeadm token create --print-join-command`. Esto devolverá el comando que necesita ser ejecutado en el nuevo nodo trabajador³.
+
+Aquí tienes un ejemplo de cómo se vería este comando:
+```
+sudo kubeadm join $some_ip:6443 --token $some_token --discovery-token-ca-cert-hash $some_hash
+```
+Donde `$some_ip`, `$some_token`, y `$some_hash` son valores específicos de tu clúster⁵.
+
+***********************************************************************************
+
+
+Para crear un nodo con múltiples pods en Kubernetes usando Minikube, puedes seguir los siguientes pasos:
+
+1. Inicia un clúster con 2 nodos en el controlador de tu elección usando el comando `minikube start --nodes 2 -p multinode-demo`³.
+
+2. Verifica la lista de tus nodos con el comando `kubectl get nodes`³.
+
+3. Despliega tu implementación de "hola mundo" con el comando `kubectl apply -f hello-deployment.yaml`³.
+
+4. Despliega tu servicio de "hola mundo", que simplemente devuelve la dirección IP desde la que se sirvió la solicitud, con el comando `kubectl apply -f hello-svc.yaml`³.
+
+5. Verifica las direcciones IP de tus pods para referencia futura con el comando `kubectl get pods -o wide`³.
+
+6. Mira tu servicio para saber qué URL golpear con el comando `minikube service list -p multinode-demo`³.
+
+*************************************************************************************
+
+Para crear un nodo con 2 pods en Kubernetes usando Minikube, necesitarás un archivo YAML para la implementación. Aquí tienes un ejemplo de cómo podría ser ese archivo:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hello-world
+  template:
+    metadata:
+      labels:
+        app: hello-world
+    spec:
+      containers:
+      - name: hello-world
+        image: gcr.io/google-samples/node-hello:1.0
+        ports:
+        - containerPort: 8080
+```
+
+Este archivo YAML crea una implementación llamada `hello-deployment` que consta de 2 réplicas (o pods) del contenedor `hello-world`. El contenedor `hello-world` se basa en la imagen `gcr.io/google-samples/node-hello:1.0` y expone el puerto 8080.
+
+Para aplicar este archivo YAML y crear los pods, puedes usar el comando `kubectl apply -f <nombre-del-archivo>.yaml`.
+
+*********************************************************************
+
+TROUBLESHOOTING
+FLUJO
+unidad base: pod -> logs, describe
+kubectl logs nginx-example-deployment-7bddf98bf5-8w8sg -n ns-ljhh-k8s-local
+kubectl describe pod nginx-example-deployment-7bddf98bf5-8w8sg -n ns-ljhh-k8s-local
+
+EXPORTAR EN UN YAML EL INGRESS EJECUTADO EN UN CLUSTER
+kubectl get ingress <nombre-del-ingress> -n <namespace> -o yml
+kubectl get ingress frontend-ingress -o yaml -n leandrohinestroza
+
+luego: deployment -> describe
+kubectl describe deployment nginx-example-deployment -n ns-ljhh-k8s-local
+
+luego: servicio -> port forwarding
+kubectl describe service nginx-example-service -n ns-ljhh-k8s-local
+
+luego: ingress -> revisar la configuracion, como un dominio
+
+escalar replicas hacia arriba o hacia abajo
+kubectl scale deployments/<deploymentName> --replicas=0
+kubectl scale deployments/<deploymentName> --replicas=1
+
+reiniciar deployments
+kubectl rollout restart deployment <deploymentName>
+kubectl rollout restart deployment nginx-example-deployment -n ns-ljhh-k8s-local
+
+describir deployents
+kubectl describe deployments frontend-deployment -n 
+kubectl describe services frontend-service -n ns-todo-app-k8s-local
+
+SETEAR NAMESPACE POR DEFAULT
+kubectl config set-context --current --namespace=ns-todo-app-k8s-local
+kubectl config set-context --current --namespace=leandrohinestroza
+
+CAMBIAR ENTRE CONTEXT
+kubectl config get-contexts
+kubectl config use-context CONTEXT_NAME
+
+OBTENER TODA LA INFO
+kubectl get all -A
+
+BORRAR DEPLOYMENT
+kubectl delete deploy deploymentname -n namespacename
+
+BORRAR TODO DE UN NAMESPACE
+kubectl delete all --all -n leandrohinestroza
+
+REGLA: ***********POR LO GENERAL UN CONTENEDOR POR POD*******
+
+*******************************
+TODOS-APP
+ajustar el yaml con el deployment ( los valores de las variables de ambiente van entre comillas)
+https://stackoverflow.com/questions/67209072/how-can-i-connect-to-kubernetes-pod-within-the-same-cluster-with-http-request
+kubectl apply -f <nombre del yaml>
+kubectl get pods -A -w
+kubectl port-forward service/frontend-service -n ns-todo-app-k8s-local 8080:8080
+kubectl expose deployment frontend-deployment -n ns-todo-app-k8s-local
+kubectl logs todo-app-deployment-5b5855964d-87cnc -n ns-todo-app-k8s-local
+
+----------------------------------------------------
+PARA CONSULTAR LOS CONTEXTOS
+kubectl config get-contexts -o=name
+
+PARA SELECCIONAR EL CONTEXTO
+kubectl config use-context <cluster-name>
+kubectl config use-context minikube
+
+PARA PROBAR CONECTIVIDAD EN EL CONTEXTO
+kubectl get nodes
+
+----------------------------------------------------
+
+PARA INSTALAR INGRESS CONTROLLER EN MINIKUBE
+minikube addons enable ingress
+
+LUEGO
+kubectl get ingress
+****************************************************
+
+-----------------------------------------------------
+MAP PORTS TODO-APP
+-----------------------
+auth-api
+container port 8000
+env:
+AUTH_API_PORT=8000
+USERS_API_ADDRESS=http://USERS-API:8083
+JWT_SECRET=foo
+-----------------------
+frontend
+container port 8080
+env:
+PORT=8080
+AUTH_API_ADDRESS=http://AUTH-API:8000 
+TODOS_API_ADDRESS=http://TODOS-API:8082
+-----------------------
+log-message-processor
+container port NONE 6379
+env:
+REDIS_HOST=redis-db 
+REDIS_PORT=6379 
+REDIS_CHANNEL=log_channel
+-----------------------
+redis
+container port 6379
+env: NONE
+-----------------------
+todos-api
+container port 8082
+env:
+TODO_API_PORT=8082 
+JWT_SECRET=foo 
+REDIS_HOST=redis-db
+REDIS_PORT=6379 
+REDIS_CHANNEL=log_channel
+-----------------------
+users-api
+container port 8083
+env:
+JWT_SECRET=foo 
+SERVER_PORT=8083
+----------------------
+
+EJEMPLO DE YAML DEPLOYMENT TODO-APP FRONTEND
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ns-todo-app-k8s-local 
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  namespace: ns-todo-app-k8s-local
+  labels:
+    app: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: leandrohinz/frontend:v1
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        - name: AUTH_API_ADDRESS
+          value: "http://auth-api-service.ns-todo-app-k8s-local.svc.cluster.local:8000"
+        - name: TODOS_API_ADDRESS
+          value: "http://todos-api-service.ns-todo-app-k8s-local.svc.cluster.local:8082"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: ns-todo-app-k8s-local
+spec:
+  type: NodePort
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      nodePort: 30001
+
+PARA APLICARLO:
+kubectl apply -f 1.pod_frontend.yaml
+
+-----------------------------------------------------------------------
+
+EJEMPLO CUSTOM IMAGE
+
+>kubectl create deployment hello-world-rest-api --image=in28min/hello-world-rest-api:0.0.1.RELEASE
+>kubectl expose deployment hello-world-rest-api --type=LoadBalancer --port=8080
+>kubectl scale deployment hello-world-rest-api --replicas=3
+>kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.2.RELEASE
+>kubectl delete pod POD_NAME
+>kubectl autoscale deployment currency-exchange --max=10 --cpu-percent=70
+watch kubectl -n ingress get svc -n ns-todo-app-k8s-local 
+
+
+KUBECTX INSTALL
+
+sudo snap install kubectx --classic
+------------------------------------------------------------------------
+POR INVESTIGAR::
+*INVESTIGAR ACERCA DE LA AUTENTICACION HACIA EL DOCKER HUB PARA BAJAR LA IMAGEN EN EL YAML
+
+*INVESTIGAR COMO CONFIGURAR EL CLUSTER DE KUBERNETES Y EL LOAD BALANCER
+kubectl expose deployment hello-world-rest-api --type=LoadBalancer --port=8080
+
+*ACTUALIZAR LA IMAGEN DE UN DEPLOYMENT
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.2.RELEASE
+
+*INVESTIGAR
+kubectl autoscale deployment currency-exchange --max=10 --cpu-percent=70
+
+*INVESTIGAR EL PARAMETRO RESORUCE PARA PASARLE RAM Y PROCESADOR A UN POD, TAMBIEN SE LE PUEDE ESPECIFICAR ALMACENAMIENTO
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zaqar
+  namespace: default
+  labels:
+    app: zaqar
+    version: v1.0.0
+    env: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zaqar
+      env: production
+  template:
+    metadata:
+      labels:
+        app: zaqar
+        version: v1.0.0
+        env: production
+    spec:
+      containers:
+        - name: zaqar
+          image: "khaosdoctor/zaqar:v1.0.0"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SENDGRID_APIKEY
+              value: "MY_SECRET_KEY"
+            - name: DEFAULT_FROM_ADDRESS
+              value: "my@email.com"
+            - name: DEFAULT_FROM_NAME
+              value: "Lucas Santos"
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+
+
+cd /home/leandroid/.kube
+
+------------------------------------------------------------------------
+
+CLOUD AWS CLUSTER
+
+Connect to the cluster
+You'll need an AWS account in the same account as the EKS cluster. If you don't have one, ask your trainer to get one for you.
+You need to configure your .kube/config file. Make you have the aws cli installed and the user you are using is the same as the user that was configured in the cluster.
+
+aws sts get-caller-identity
+ 
+If the user is the same, run the command to configure the cluster.
+
+aws eks update-kubeconfig --region us-west-1 --name ramp-up-k8s
+ 
+List the namespace and verify that exist one with your username(without special characters).
+
+kubectl get namespace
+ 
+You now have access to the cluster.
+Remember, you have full access to create resources in your namespace, but you can't access other people's namespaces.
+If there is a specific access you feel you need, talk with your trainer, and he will help you configure it.
+Install or update the latest version of the AWS CLI - AWS Command Line Interface
+Install the AWS CLI on your system.
+https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+
+------------------------------------------------------------------------------
+
+POR HACER:
+
+INSTALAR NGINX INGRESS CONTROLLER EN EL LOCAL 
+DONE
+SEGUIR EL STEP BY STEP
+DONE
+CREAR INGRESS SOLO DEL FRONTEND
+DONE
+EL TEST FALLA DE INGRESS:
+curl --resolve "frontend.info:80:$( minikube ip )" -i http://frontend.info
+PREGUNTARLE A FELIPE POR TROUBLESHOOTING Y POR ACLARAR COMO FUNCIONA
+minikube start
+
+minikube addons enable ingress
+
+minikube addons enable ingress-dns
+
+Wait until you see the ingress-nginx-controller-XXXX is up and running using Kubectl get pods -n ingress-nginx
+
+Create an ingress using the K8s example yaml file
+
+Update the service section to point to the NodePort Service that you already created
+
+Append 127.0.0.1 hello-world.info to your /etc/hosts file on MacOS (NOTE: Do NOT use the Minikube IP)
+
+Run minikube tunnel ( Keep the window open. After you entered the password there will be no more messages, and the cursor just blinks)
+
+Hit the hello-world.info ( or whatever host you configured in the yaml file) in a browser and it should work
+
+INVESTIGAR HELM Y EJEMPLOS
+INSTALADO HELM Y DESPLEGADO CHART DE INICIALIZACION CON HELM CREATE frontend-chart
+PREGUNTARLE A FELIPE POR LA ESTRUCTURA
+------------------------------------------------
+modificar y llenar el archivo values.yaml
+quitar todo lo quemado de los archivos deployment.yaml, service e ingress y poner los valores
+crear dentro de la carpeta template
+modificar y llenar el archivo para el deployment.yaml
+modificar y llenar el archivo para service.yaml
+modificar y llenar el archivo para el ingress.yaml
+eliminar todos los deployments creados en el minikube
+hacer el helm install
+
+probar instalar aplicaciones con helm: prometheus, grafana, istio
+
+_________________________________________________
+
+reubicar los archivos dentro de la carpeta templates
+eliminar los que no se necesitan
+borrar todos los deployments y correr los helm desde 0 con helm install frontend-chart .
+pararse sobre la carpeta del chart y ejecutar:
+
+helm install auth-api-chart .
+helm install frontend-chart .  (helm install frontend-chart --replace)
+helm install log-message-processor-chart .
+helm install redis-chart .
+helm install todos-api-chart .
+helm install users-api-chart .
+
+luego validar kubectl get all -n ns-todo-app-k8s-local
+
+
+---------------------------------
+
+PARA FELIPE EL MARTES:
+PUDE HACER LA INSTALACION DE TODOS LOS HELM CHARTS EN LOCAL A EXCEPCION:
+FRONTEND: da error por que dice que el namespace ya existe, preguntarle a felipe como añadir el namespace con los labels o si el approach de las annotations esta bien
+LOG-MESSAGE-PROCESSOR: da error <.Values.service.type>: nil pointer evaluating interface {}.type en el service.yaml
+
+tener en cuenta para administrar recursos existentes en el cluster:
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.appName }}-service
+  namespace: {{ .Values.namespaceName }}
+  annotations:
+   meta.helm.sh/release-name: {{ .Values.appName }}-chart
+   meta.helm.sh/release-namespace: {{ .Values.namespaceName }}
+  labels:
+   app.kubernetes.io/managed-by: Helm
+
+PUDE DESPLEGAR EN EL CLUSTER NUBE LOS MICROSERVICIOS
+todos los pods creados en el cluster y visibles, incluidos los services y el ingress, pero da error al momento de entrar a la url del ingress, revisar ademas si toca cambiar los servicios de nodeport a cluster Ip (solo para nube aws)
+
+resuelto:
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  namespace: leandrohinestroza
+  labels:
+    app: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: leandrohinz/frontend:v1
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        - name: AUTH_API_ADDRESS
+          value: "http://auth-api-service.leandrohinestroza.svc.cluster.local:8000"
+        - name: TODOS_API_ADDRESS
+          value: "http://todos-api-service.leandrohinestroza.svc.cluster.local:8082"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: leandrohinestroza
+spec:
+  type: LoadBalancer
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      nodePort: 30001
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend-ingress
+  namespace: leandrohinestroza
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+       paths:
+         - path: /
+           pathType: Prefix
+           backend:
+             service:
+               name: frontend-service
+               port:
+                 number: 8080
+
+--------------------------------------
+CI CD
+Crear por medio del codigo de terraforms:
+
+instancia aws ec2
+security group nuevo (puertos 8080)
+
+conectarse por ssh e instalar y configurar jenkins (jenkins install linux)
+https://medium.com/@rajkanchole1/how-to-install-jenkins-on-linux-b36682d7cdce
+https://phoenixnap.com/kb/install-jenkins-ubuntu
+
+luego con la ip de la instancia abrir jenkins
+
+http://ec2-18-144-11-136.us-west-1.compute.amazonaws.com:8080/
+user: leandroid
+pass: Majhe***********
+
+CI
+https://iot4beginners.com/how-to-push-a-docker-image-to-the-docker-hub-using-jenkins-pipeline-2022-ci-cd/
+checkout github
+docker build
+docker push
+-------------------------------------
+script en pipeline jenkins:
+node {   
+    stage('Clone repository') {
+        git credentialsId: 'git', url: 'https://github.com/leandrohinz/todo-app.git'
+    }
+    
+	stage('Output') {
+
+		def output = sh(returnStdout: true, script: 'ls -al .')
+		echo "Output: ${output}"
+
+	}
+		
+    stage('Build image') {
+       dockerImage = docker.build("leandrohinz/auth-api:v1")
+    }
+    
+ stage('Push image') {
+        withDockerRegistry([ credentialsId: "dockerhubaccount", url: "" ]) {
+        dockerImage.push()
+        }
+    }    
+}
+
+PENDIENTES:
+
+terminar ci, crear los demas pipelines
+añadir los jenkinfiles a los demas carpetas del repo
+correr los pipelines
+
+---------------------------------
+CD
+https://blog.digger.dev/how-to-run-terraform-in-jenkins/
+https://medium.com/@gowthamusa.98/deployment-of-custom-helm-charts-on-an-eks-cluster-via-terraform-d4f25b140838
+https://spacelift.io/blog/terraform-kubernetes-provider
+https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release
+
+INVESTIGAR:
+parametros y variables de los jenkinfiles
+
+PENDIENTES:
+solucionar lo del jenkins y git YA
+PREGUNTARLE A FELIPE POR QUE EL PIPELINE TIENE UN TERRAFORM INIT Y UN APPLY SI ESTAN CREADOS LOS HELM CHARTS Y SE DEBERIA CORRER UN HELM INSTALL??
+-----------------------
+troubleshoot jenkins
+systemctl edit jenkins
+
+modificar los charts y el jenkins file de los otros microservicios asi como el de frontend
+copiar el archivo .kube en el servidor de aws
+hacer en la maquina de jenkins lo de las credenciales, antes de correr el pipeline hacer esto en el servidor
+
+******
+crear variables de ambientes en linux:
+export AWS_ACCESS_KEY_ID=AKIA57XXQ6GYYFHZJGFP
+export AWS_SECRET_ACCESS_KEY=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
+<*******
+
+cambiar de usuario:
+sudo -i -u jenkins
+
+setear un password a un user:
+sudo passwd jenkins
+
+discos
+df -h
+
+investigar:
+openlens kubernetes
+
+----------------------------------
+
+replicar todos los cambios del jenkinsfile y del main del frontend en los demas microservicios y correr los pipelines de cd (verificar ruta del jenkinsfile en el pipeline de cd  DONE!
+
+
+...---------------------------------------------------------
+
+
+	Write a Kubernetes object according to the expectations listed below:
+•	Docker images registry will be deployed as a single replica;
+•	Pod runs a single container with image registry :2.7.1;
+•	Container stores images under /var/iib/registry. Mount a Persistent Volume to store data;
+•	Additional configuration for the Persistent Volume:
+	o Set access modes to ReadWriteOnce; o Persistent Volume should request 1Gi storage size;
+•	The container exposes port 5000;
+•	The container must have configured a LivenessProbe, which will attempt to open a socket to your container on port 5000 (use 	tcpsocket);
+•	Additional configurations on the LivenessProbe:
+• 	Set initial probe delay to 10 seconds;
+•	The container must have configured a ReadinessProbe, which will attempt to open a socket to your container on port 5000 (use 		tcpsocket);
+•	Additional configurations on the ReadinessProbe:
+	o Set initial probe delay to 10 seconds.
+
+Additionally, write a Service with type LoadBaiancer, which exposes the above deployment on port 5000.
+	For this test, assume that:
+•	You will use either statefuiset or Deployment object definition from apiGroup apps/vi to create the Deployment;
+•	If necessary, you may use Persistentvoiumeciaim from apiGroup vi
+•	You can use tcpsocket requests in probes;
+•		The Deployment will be created in the default namespace (it is not expected to define its own namespace);
+•		Your solution will be applied using kubectl apply -n default -f solution.yaml;
+•	The file you are editing should be written as a valid YAML file;
+	The Deployment will run on Kubernetes v1.16.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: registry
+  template:
+    metadata:
+      labels:
+        app: registry
+    spec:
+      containers:
+      - name: registry
+        image: registry:2.7.1
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - name: registry-storage
+          mountPath: /var/iib/registry
+        livenessProbe:
+          tcpSocket:
+            port: 5000
+          initialDelaySeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 5000
+          initialDelaySeconds: 10
+      volumes:
+      - name: registry-storage
+        persistentVolumeClaim:
+          claimName: registry-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: registry-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: registry-service
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 5000
+  selector:
+    app: registry
+
+kubectl apply -n default -f solution.yaml
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

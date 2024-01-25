@@ -1,0 +1,291 @@
+Primeros pasos 🏃‍️ con ArgoCD en Kubernetes 🤘
+Instalación con Helm Chart y gestion desde CLI
+Requisitos:
+Tener instalado el binario de Helm https://helm.sh/docs/intro/install/
+Tener instalado Minikube https://minikube.sigs.k8s.io/docs/start/
+Tener instalado el Binario de ArgoCD https://argo-cd.readthedocs.io/en/stable/cli_installation/
+
+Iniciamos nuestro Minikube para contar con un Cluster de K8s en local
+
+minikube start
+Añadimos el repo de Helm
+
+helm repo add argo https://argoproj.github.io/argo-helm
+Hacemos pull del Chart para descargarlo, poder ver el contenido del Chart e instalarlo.
+
+helm pull argo/argo-cd --version 5.8.2
+Descomprimimos el paquete TGZ del Chart descargado
+
+tar -zxvf argo-cd-5.8.2.tgz
+Hacemos la instalación pasando parámetros de configuración
+
+helm install argo-cd argo-cd/ \
+  --namespace argocd \
+  --create-namespace --wait \
+  --set configs.credentialTemplates.github.url=https://github.com/TheAutomationRules \
+  --set configs.credentialTemplates.github.username=$(cat ~/.secrets/github/theautomationrules/user) \
+  --set configs.credentialTemplates.github.password=$(cat ~/.secrets/github/theautomationrules/token)
+Imprimimos en pantalla la contraseña del usuario "admin" por defecto que se ha generado automáticamente en la instalación
+
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+Levantamos un Port-Forward para poder acceder a ArgoCD UI desde localhost:8080
+
+kubectl port-forward service/argo-cd-argocd-server -n argocd 8080:443
+Hacemos login en ArgoCD con la contraseña que hemos obtenido
+
+argocd login localhost:8080
+Una vez que hemos hecho login satisfactoriamente cambiamos la contraseña generada por una que nos venga mejor, como por ejemplo "argocdpass"
+
+argocd account update-password
+Ahora que estamos logados con el binario de argocd podemos crear el repositorio de código.
+
+argocd repo add https://github.com/TheAutomationRules/argocd.git
+Creamos un proyecto de pruebas en el que solo se puedan crear aplicaciones en el namespace "testing" y con determinado repositorio de código
+
+argocd proj create testing -d https://kubernetes.default.svc,testing -s https://github.com/TheAutomationRules/argocd.git
+Si quisieramos crear un proyecto en el que esté permitido cualquier namespace y cualquier repositorio
+
+argocd proj create system-admin -d https://kubernetes.default.svc,* -s '*'
+Creamos el Namespace "testing" que sera el que usaremos para desplegar las aplicaciones
+
+kubectl create ns testing
+Ahora creamos nuestra primera aplicación de pruebas en el proyecto que hemos creado anteriormente
+
+argocd app create guestbook \
+  --repo https://github.com/TheAutomationRules/argocd.git \
+  --revision main --path ./official/examples/guestbook \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace testing \
+  --project testing
+Ahora creamos otra app, pero esta vez con sincronización automática
+
+argocd app create helm-guestbook \
+  --repo https://github.com/TheAutomationRules/argocd.git \
+  --revision main --path ./official/examples/helm-guestbook \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace testing \
+  --sync-policy automated \
+  --project testing
+Ahora podemos relanzar la primera App y sincronizar desde la CLI
+
+argocd app sync guestbook
+Si queremos saber el estatus de la App
+
+argocd app get guestbook
+Ahora para eliminar las Apps
+
+argocd app delete guestbook
+Podemos listar los Charts que tenemos instalados
+
+helm list -n argocd
+Desinstalamos todo!
+
+helm uninstall argo-cd -n argocd
+Ahora podemos eliminar los Namespaces que hemos creado
+
+kubectl delete ns argocd testing
+Ahora ya podemos detener nuestro Minikube
+
+minikube stop
+
+---------------------------------------------------------------------------
+Configuración ⚙️ de Helm Chart de instalación de ArgoCD y Manifiestos 🤘
+Hoy veremos como configurar parámetros básicos en el values del Helm Chart de ArgoCD (Ej: contraseña de admin y repositorios) y como configurar, repositorios, proyectos y aplicaciones desde manifiestos aplicables desde la CLI.
+
+Video:
+
+0:00 Inicio 0:15 Intro 0:27 Descripción 1:48 Configuración e Instalación de ArgoCD desde Values 10:48 Manifiestos y Despliegue 22:18 Eliminación y Desinstalación 23:49 Despedida 23:58 Outro
+
+GitHub: https://github.com/TheAutomationRules/argocd/blob/main/Video_02/README.md
+
+Twitter: @TheAutomaRules Instagram: TheAutomationRules
+
+#kubernetes #argocd #gitops #minikube #continuousdelivery
+
+Instalación con Helm Chart y gestion desde CLI
+Requisitos:
+Tener instalado el binario de Helm https://helm.sh/docs/intro/install/
+Tener instalado Minikube https://minikube.sigs.k8s.io/docs/start/
+Tener instalado ArgoCD sigue los pasos en mi video anterior: https://github.com/TheAutomationRules/argocd/blob/main/Video_01/README.md
+Estando ubicados en el mismo path en el que se encuentra el directorio argo-cd con el chart de ArgoCD descomprimido y vemos los siguientes archivos:
+
+argo-cd
+argo-cd-5.8.2.tgz
+Duplicamos el archivo values.yaml y creamos una copia con el nombre values-custom.yaml
+
+cp argo-cd/values.yaml argo-cd/values-custom.yaml
+Generamos la contraseña ARGOCDPASS todo en mayusculas con el siguiente comando y la usamos para editar el nuevo values-custom.yaml.
+
+htpasswd -nbBC 10 "" ARGOCDPASS | tr -d ':\n' | sed 's/$2y/$2a/'
+Copiamos el resultado de la contraseña generada sin incluir el caracter de porcentaje del final "%", editamos el values-custom.yaml, buscamos "argocdServerAdminPassword:" y definimos alli la contraseña generada.
+
+argocdServerAdminPassword: "$2a$10$sTPh5sJJafZvxb1WG8D6h.seMOewbZKgE/GFTyHcTvgyHF5tboKWm"
+Buscamos "credentialTemplates:" y aqui definimos el template de las credenciales que usaremos para conectarnos a nuestros repositorios de Git en este caso repositorios de GitHub.
+
+github-user-public:
+    url: https://github.com/TheAutomationRules
+Buscamos "repositories: {}" y en esta seccion definimos los repositorios de git que queremos añadir en la instalación de ArgoCD.
+
+theautomationrules-argocd:
+    url: https://github.com/TheAutomationRules/argocd.git
+    name: theautomationrules-argocd
+Instalamos argocd seleccionando el values file que hemos customizado
+
+helm install argo-cd argo-cd/ \
+  --namespace argocd \
+  --create-namespace --wait \
+  -f argo-cd/values-custom.yaml
+Creamos un namespace de pruebas llamado testing
+
+kubectl create ns argocd-demo
+Ahora podemos crear o añadir el repositorio en el que se encuentra nuestra aplicación a nuestro ArgoCD para que pueda ser usado por el Project y la Application.
+
+k apply -f repository.yaml
+Ahora creamos el Project aplicando el manifest donde hemos hecho la definición del mismo.
+
+k apply -f project.yaml
+Y finalmente creamos la aplicacion para que inicie la sincronización.
+
+k apply -f application.yaml
+Ahora ya podemos ver nuestro repositorio, proyecto y aplicación instaladas, configuradas y sincronizadas!
+
+Si queremos ver la aplicación funcionando hacemos un Port Forward del 8081 al 80 del service
+
+kubectl port-forward svc/argocd-demo-helm-guestbook -n argocd-demo 8081:80
+Accedemos desde el navegador a la dirección localhost:8081 y podemos ver la aplicacion funcionando!
+
+Desinstalamos todo! para ello lo primero, es eliminar la aplicación desde el Dashboard de ArgoCD.
+
+Captura de pantalla 2023-01-14 a las 12.08.59.png
+
+Y ahora desinstalamos el Chart de ArgoCD
+
+helm uninstall argo-cd -n argocd
+Ahora podemos eliminar los Namespaces que hemos creado
+
+kubectl delete ns argocd argocd-demo
+Ahora ya podemos detener nuestro Minikube
+
+minikube stop
+
+-----------------------------------------------------------------------
+Automatiza ⚙️ los despliegues con ArgoCD 🐙 Image Updater ✅
+Hoy os voy a mostrar como automatizar la actualizacion de versiones de las aplicaciones desplegadas en tu cluster kubernetes desde ArgoCD con ArgoCD Image Updater.
+
+Video:
+
+0:00 Inicio
+
+0:13 Intro
+
+0:24 Explicación
+
+3:14 DEMO
+
+18:43 Conclusión
+
+20:00 Despedida
+
+20:10 Outro
+
+GitHub: https://github.com/TheAutomationRules/argocd/blob/main/Video_03/README.md
+
+Twitter: @TheAutomaRules Instagram: TheAutomationRules
+
+#kubernetes #argocd #image #updater #gitops #minikube #continuousdelivery
+
+Instalación basado en el video anterior.
+Para instalar ArgoCD seguiremos los mismos pasos que en nuestros videos anteriores, para ello usaremos el directorio de instalación del video anterior parados dentro de la raiz del directorio Video_03.
+
+helm install argo-cd argo-cd/ \
+      --namespace argocd \
+      --create-namespace --wait \
+      -f ../Video_02/argo-cd/values-custom.yaml
+Creamos un proyecto de pruebas llamado argocd-demo
+
+kubectl apply -f argocd-manifests/project-argocd-demo.yaml
+Creamos un namespace de pruebas llamado argocd-demo
+
+kubectl create ns argocd-demo
+Creamos un secret con el Token de GitHub con permisos packages:read en el namespace argocd-demo con el formato username:token y en base64, es el token que usara ArgoCD Image Updater para conectar con el registry y hacer pull de la imagen.
+
+kubectl apply -f k8s/git-secret.yaml
+Ahora levantamos un port-forward para acceder a ArgoCD
+
+kubectl port-forward service/argo-cd-argocd-server -n argocd 8080:443
+Para instalar ArgoCD Image Updater añadimos el repo de Helm de ArgoCD Image Updater
+
+helm repo add argo https://argoproj.github.io/argo-helm
+Ahora hacemos un pull del Helm Chart de instalación de Image Updater, lo he ubicado en este mismo repo en official/argocd-image-updaterya me envio
+
+helm pull argo/argocd-image-updater argo/argocd-image-updater --version 0.8.1
+Duplicamos el archivo values.yaml y lo renombramos como values-custom.yaml, lo importante que tenemos que modificar es en la línea 101 (registries), necesitamos añadir nuestro registry, en mi caso voy a usar el GitHub Container Registry, ejemplo:
+
+  registries: #[]
+    - name: GitHub Container Registry
+      prefix: ghcr.io
+      api_url: https://ghcr.io
+      ping: no
+      insecure: true
+      credentials: secret:argocd/git-credentials#creds
+Instalamos ahora si el Image Updater pero lo hacemos desde una aplicacion de ArgoCD por supuesto:
+
+kubectl apply -f argocd-manifests/image-updater.yaml
+Ahora instalamos nuestra aplicacion DEMO que no es mas que un NGiNX customizado que hemos generado con el Dockerfile que tenemos en el directorio docker/nginx/Dockerfile, y obviamente tambien lo hacemos con una aplicacion de ArgoCD 😎
+
+kubectl apply -f argocd-manifests/nginx-demo-arm.yaml
+Levantamos un port-forward para que podamos acceder al NGiNX DEMO
+
+kubectl port-forward service/nginx-demo-arm -n argocd-demo 8082:80
+Peeeeero! lo podemos simplificar instalando directamente desde el Makefile
+Instalamos ArgoCD
+
+make start
+Instalamos ArgoCD Image Updater
+
+make installiu
+Accedemos a la App DEMO
+
+make forward-app
+
+-----------------------------------------------------------------------------
+
+Como crear ApplicationSets 📦en ArgoCD 🐙
+Hoy os voy a mostrar como crear un set de aplicaciones o ApplicationSet en ArgoCD consiguiendo así estandarizar el despliegue de varias aplicaciones o servicios.
+
+Video:
+
+0:00 Inicio 0:08 INTRO 0:19 Minikube y Makfile 1:59 Acceso a ArgoCD 3:55 DEMO applicationset1 10:05 DEMO applicationset2 14:55 DEMO acceso a aplicaciones 17:52 Despedida 18:01 OUTRO
+
+GitHub: https://github.com/TheAutomationRules/argocd/blob/main/Video_04/README.md
+
+Twitter: @TheAutomaRules Instagram: TheAutomationRules
+
+#kubernetes #argocd #applicationset #gitops #minikube #continuousdelivery
+
+Instalación basado en el video 02 instalando directamente desde el Makefile
+Instalamos ArgoCD
+
+make start
+Desplegamos los namespaces, project y application set del primer ejemplo
+
+make applicationset1
+Con esto comprobamos en ArgoCD como se despliegan las aplicaciones definidas en el ApplicationSet 1.
+
+Ahora podemos por ver el Guest Book en funcionamiento, levantamos un forward al de Dev
+
+make forward-guestbook
+Aqui podemos ver la aplicacion funcionando y podemos hacer uso de ella.
+
+make applicationset2
+Con esto comprobamos en ArgoCD como se despliegan las aplicaciones definidas en el ApplicationSet 2.
+
+Ahora podemos ver las aplicaciones funcionando, levantamos un forward para ver Consul funcionando.
+
+make forward-consul
+Levantamos un forward para ver Prometheus funcionando.
+
+make forward-prometheus
+Si queremos eliminar todos los application sets
+
+make deleteall

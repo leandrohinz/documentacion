@@ -1,0 +1,57 @@
+++++++++++++++++++++++++++++++++++++++++++++++++
+INSTALAR ANSIBLE:
+sudo add-apt-repository ppa:ansible/ansible
+sudo apt update
+sudo apt install ansible
+
+++++++++++++++++++++ conectarse por ssh ++++++++++++++++++++++++++
+saber si un proceso esta corriendo:
+
+eval $(ssh-agent)
+Agent pid 14
+
+ssh add
+
+setear el password
+
+ssh <nombre del server>
+
++++++++++++++++ inventario ++++++++++++++++++++++
+
+sudo vim /etc/ansible/hosts
+
+se puede:
+db[1:50].makigas.es
+
+[webservers]
+alpha.example.org
+beta.example.org
+192.168.1.100
+192.168.1.110
+
+[dbservers]
+db01.intranet.mydomain.net
+db02.intranet.mydomain.net
+10.25.1.56
+10.25.1.57
+
++++++++++++++++++++++ comandos de una tarea - ad hoc+++++++++++++++++++
+
+SABER SI UN HOST ESTA LISTO:
+ansible makigas-es -m ping
+ansible localhost -m ping
+
+SABER SI UN HOST ESTA LISTO USANDO UN ARCHIVO DE HOST DIFERENTE
+ansible makigas-es -m ping -i host.txt #archivo de host debe existir y tener dentro los hosts sea nombres o ip
+
+EJECUTAR COMANDOS ADHOC EN SERVER REMOTOS
+ansible makigas.es -a "echo hola" #si no le ponemos el -m toma el modulo por omision shell
+ansible makigas.es -a "ls /"
+
+------------------ modulos ---------------
+ansible makigas.es -m apt -a "name=vim state=present" -b -K
+<introducir contraseña del root remoto>
+
++++++++++++++++++++++++ comandos declarativos -  playbook ++++++
+CORRER PLAYBOOK:
+ansible-playbook tareas.yml

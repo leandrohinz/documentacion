@@ -1,0 +1,280 @@
+***solucion linux lento y no actualiza apt 
+sudo rm -rf /etc/acpi/events
+
+***prerrequisitos del ramp up
+
+install wsl 2
+install ubuntu
+install docker
+descargar el excel y colocar el estimado
+create dockerhub account
+
+***welcome:
+
+git clone https://github.com/leandrohinz/todo-app.git
+
+https://github.com/felipeamorim-dev/docker-wsl2
+
+**********************************************
+to install docker in ubuntu
+
+# Add Docker's official GPG key:
+sudo apt-get update
+sudo apt-get install ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+# Add the repository to Apt sources:
+echo \
+  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt-get update
+
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+sudo docker run hello-world #optional
+
+sudo groupadd docker
+
+sudo usermod -aG docker $USER
+
+newgrp docker
+
+sudo systemctl enable docker.service
+sudo systemctl enable containerd.service
+
+*************************************************
+
+*** basic commands:
+
+docker pull redis
+https://geekflare.com/docker-commands/
+https://linuxhandbook.com/essential-docker-commands/
+
+docker tag local-image:tagname new-repo:tagname
+docker push new-repo:tagname
+
+docker container rename CONTAINER NEW_NAME
+
+docker container prune
+docker image prune
+docker network prune
+docker volume prune
+
+PARA LOS DOCKERFILES:
+
+FRONTEND
+ 
+Dependency	Version
+Node	8.17.0
+NPM	6.13.4
+
+LOG-MESSAGE-PROCESSOR
+ 
+Dependency	Version
+Redis	7.0
+Python	3.6
+Pip	default
+ 
+TODOSAPI
+ 
+Dependency	Version
+Node	8.17.0
+NPM	6.13.4
+ 
+
+USERS API
+ 
+Dependency	Version
+Java	openJDK8
+ 
+
+AUTH_API
+ 
+Dependency	Version
+Go	1.18.2
+ 
+PROCEDIMIENTO DE LOS DOCKERFILES:
+
+buscar en google la plantilla del docker file para el lenguaje: go, js, vue... etc
+copiarla y pegarla en el root del projecto
+modificar el dockerfile (RUN, COPY, EXPOSE)
+hacer el docker build con el nombre
+hacer el docker run del contenedor con el nombre y puerto
+probar la aplicacion con el navegador o un curl desde el terminal
+
+las variables de ambiente debemos declararlas en el docker run añadiendo este parametro -e AUTH_API_ADDRESS=http://localhost:8000, (va antes del -p), es decir por ejemplo para el FRONTEND quedaria:
+docker run -d -e PORT=8080 -e AUTH_API_ADDRESS=http://localhost:8000 -e TODOS_API_ADDRESS=http://localhost:8082 -p 8080:8080 --name FRONTEND frontend_image
+
+BUSCAR DOCKER NETWORKS COMO FUNCIONA Y CONECTAR, CREAR LA RED Y CONECTAR LOS CONTENEDORES (--network <nombre de la red> antes del -e y entre la -d)
+
+*******************************
+COMANDOS AUTH-API (CORRE BIEN)
+
+docker build -t auth-api .
+
+docker run -d --network vnet1 -e AUTH_API_PORT=8000 -e USERS_API_ADDRESS=http://users-api:8083 -e JWT_SECRET=foo -p 8000:8000 --name AUTH-API auth-api
+
+docker run -d --network vnet1 -e AUTH_API_PORT=8000 -e USERS_API_ADDRESS=http://USERS-API:8083 -e JWT_SECRET=foo -p 8000:8000 --name AUTH-API auth-api
+
+docker run -d -e AUTH_API_PORT=8000 -e USERS_API_ADDRESS=http://18.144.64.93:8083 -e JWT_SECRET=foo -p 8000:8000 --name AUTH-API auth-api
+
+docker logs -f AUTH-API
+
+*******************************
+COMANDOS FRONTEND (CORRE BIEN)
+
+docker build -t frontend .
+
+docker run -d --network vnet1 -e PORT=8080 -e AUTH_API_ADDRESS=http://localhost:8000 -e TODOS_API_ADDRESS=http://localhost:8082 -p 8080:8080 --name FRONTEND frontend
+
+docker run -d --network vnet1 -e PORT=8080 -e AUTH_API_ADDRESS=http://AUTH-API:8000 -e TODOS_API_ADDRESS=http://TODOS-API:8082 -p 8080:8080 --name FRONTEND frontend
+
+docker run -d -e PORT=8080 -e AUTH_API_ADDRESS=http://13.57.235.245:8000 -e TODOS_API_ADDRESS=http://54.183.141.221:8082 -p 8080:8080 --name FRONTEND frontend
+
+docker logs -f FRONTEND
+
+*********************************
+PARA CORRER EL REDIS:
+
+docker run --rm --network vnet1 --name redis-db -d -it -p 6379:6379 redis
+
+docker run --rm --name redis-db -d -it -p 6379:6379 redis
+
+redis-cli -h 127.0.0.1 -p 6379
+
+una vez conectado: info
+
+*******************************
+COMANDOS LOG-MESSAGE-PROCESSOR (CORRE BIEN)
+
+docker build -t log-message-processor .
+
+docker run -d --network vnet1 -e REDIS_HOST=127.0.0.1 -e REDIS_PORT=6379 -e REDIS_CHANNEL=log_channel --name LOG-MESSAGE-PROCESSOR log-message-processor
+
+docker run -d --network vnet1 -e REDIS_HOST=http://localhost -e REDIS_PORT=6379 -e REDIS_CHANNEL=log_channel --name LOG-MESSAGE-PROCESSOR log-message-processor
+
+docker run -d --network vnet1 -e REDIS_HOST=http://172.24.205.196 -e REDIS_PORT=6379 -e REDIS_CHANNEL=log_channel --name LOG-MESSAGE-PROCESSOR log-message-processor
+
+docker run -d --network vnet1 -e REDIS_HOST=redis-db -e REDIS_PORT=6379 -e REDIS_CHANNEL=log_channel --name LOG-MESSAGE-PROCESSOR log-message-processor
+
+docker run -d -e REDIS_HOST=54.241.130.112 -e REDIS_PORT=6379 -e REDIS_CHANNEL=log_channel --name LOG-MESSAGE-PROCESSOR log-message-processor
+
+docker logs -f LOG-MESSAGE-PROCESSOR
+
+*******************************
+COMANDOS TODOS-API (CORRE BIEN)
+
+docker build -t todos-api .
+
+docker run -d --network vnet1 -e TODO_API_PORT=8082 -e JWT_SECRET=foo -e REDIS_HOST=redis-db -e REDIS_PORT=6379 -e REDIS_CHANNEL=log_channel -p 8082:8082 --name TODOS-API todos-api
+
+docker run -d -e TODO_API_PORT=8082 -e JWT_SECRET=foo -e REDIS_HOST=54.176.93.211 -e REDIS_PORT=6379 -e REDIS_CHANNEL=log_channel -p 8082:8082 --name TODOS-API todos-api
+
+docker logs -f TODOS-API
+
+*******************************
+COMANDOS USERS-API (CORRE BIEN)
+
+docker build -t users-api .
+
+docker run -d --network vnet1 -e JWT_SECRET=foo -e SERVER_PORT=8083 -p 8083:8083 --name USERS-API users-api
+
+docker run -d -e JWT_SECRET=foo -e SERVER_PORT=8083 -p 8083:8083 --name USERS-API users-api
+
+docker logs -f USERS-API
+
+*******************************
+
+DOCKER NETWORK
+
+docker network ls (lista las redes)
+bridge 
+overlay
+macvlan
+
+docker network inspect [network-name]
+
+docker network connect [network-name] [container-name]
+
+docker network create [network-name]
+
+docker network disconnect [network-name] [container-name]
+
+docker network rm [network-name]
+
+docker network prune
+
+***********************
+TROUBLESHOOTING STEP BY STEP
+
+BORRAR TODAS LAS IMAGENES
+
+BORRAR TODOS LOS CONTENEDORES
+
+GENERAR TODAS LAS IMAGENES DESDE CERO
+
+HACER LOS RUNS DE TODAS LAS IMAGENES DESDE CERO
+
+HACER UN DIAGRAMA PARA VALIDAR TODOS LOS PUERTOS DE LOS DOCKER FILES Y QUE HAGAN MATCH CON EL COMANDO DEL BUILD Y CON EL COMANDO DEL RUN (REVISAR LA VARIABLE Y REVISAR EL -p)
+
+***********************************
+TEST
+curl -X POST  http://AUTH-API:8000/login -d '{"username": "admin","password": "admin"}'
+
+
+docker run --network vnet1 -d -p 9411:9411 --name ZIPKIN openzipkin/zipkin
+
+*********************************
+DOCKER COMPOSE
+para correr docker compose, debo pararme en la carpeta root, ademas se especifican las variables y dentro del build se coloca la ruta de la carpeta de la app/api y dentro de ella el docker file con los steps
+
+docker-compose up -d
+docker-compose up -d --build
+
+******************************************
+POR HACER:
+
+subir las imagenes al docker hubcolo carles un tag, ejemplo: v1
+
+docker tag auth-api:latest leandrohinz/auth-api:v1
+docker push leandrohinz/auth-api:v1
+
+docker tag frontend:latest leandrohinz/frontend:v1
+docker push leandrohinz/frontend:v1
+
+docker tag todos-api:latest leandrohinz/todos-api:v1
+docker push leandrohinz/todos-api:v1
+
+docker tag log-message-processor:latest leandrohinz/log-message-processor:v1
+docker push leandrohinz/log-message-processor:v1
+
+docker tag users-api:latest leandrohinz/users-api:v1
+docker push leandrohinz/users-api:v1
+
+docker tag redis:latest leandrohinz/redis:v1
+docker push leandrohinz/redis:v1
+
+setear el terraforms (credenciales) con la cuenta de aws de perficient-psl (pdf)
+https://stackoverflow.com/questions/55052153/how-to-configure-environment-variables-in-hashicorp-terraform
+
+diagrama (instancias(ec2/vms), microservicios, alta disponibilidad)
+
+buscar ejemplos de diagramas de microservicios en aws
+
+como crear una instancia en aws con terraforms
+
+*************************************
+PREGUNTARLE A FELIPE:
+COMO QUEDARIA LA PARTE DEL DOCKER RUN DENTRO DE LA INSTANCIA EC2 ES DECIR: EL PARAMETRO DE LA NETWORK QUE VA?, 
+EL PARAMETRO DE LA URL DE TODOS API Y AUTH API DEL FRONT END VA LA IPV4 PUBLICA O LA INTERNAL?
+LA IPV4 PUBLICA CAMBIA CADA VEZ QUE LA MAQUINA INICIA?
+EL USER DATA QUEDARIA COMO EL DEL ARCHIVO?
+
+
+
