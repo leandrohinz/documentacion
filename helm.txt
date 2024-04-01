@@ -1,0 +1,32 @@
+Chart Management
+helm create <name>: Creates a chart directory along with the common files and directories used in a chart1.
+helm package <chart-path>: Packages a chart into a versioned chart archive file1.
+helm lint <chart>: Run tests to examine a chart and identify possible issues1.
+helm show all <chart>: Inspect a chart and list its contents1.
+helm show values <chart>: Displays the contents of the values.yaml file1.
+helm pull <chart>: Download/pull chart1.
+
+Install and Uninstall Apps
+helm install <name> <chart>: Install the chart with a name1.
+helm install <name> <chart> --namespace <namespace>: Install the chart in a specific namespace1.
+helm install <name> <chart> --set  key1=val1,key2=val2: Set values on the command line1.
+helm install <name> <chart> --values <yaml-file/url>: Install the chart with your specified values1.
+helm uninstall <name>: Uninstall a release1.
+
+Perform App Upgrade and Rollback
+helm upgrade <release> <chart>: Upgrade a release1.
+helm rollback <release> <revision>: Roll back a release to a specific revision1.
+
+Search Commands
+helm search repo <keyword>: Search repositories for a keyword in charts1.
+helm search repo <keyword> --devel: Search for release versions matching the keyword, including pre-release versions1.
+helm search repo <keyword> --version ^1.0.0: Search for the latest stable release for a chart with a major version of 11.
+helm search repo --repo-name=<repo-name> --devel -l: Search a specific repository for charts, including pre-release versions2.
+helm search repo --repo-url=<repo-url> --devel -l: Search a specific repository by URL for charts, including pre-release versions2.
+
+Repo Commands
+helm repo add <repo-name> <url>: Add a chart repository3.
+helm repo list: List added chart repositories3.
+helm repo update: Update information of available charts locally from chart repositories3.
+helm repo remove <repo-name>: Remove a chart repository3.
+helm repo index <DIR>: Generate an index file given a directory containing packaged charts
