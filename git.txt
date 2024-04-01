@@ -55,3 +55,21 @@ git log	View changes
 git log --summary	View changes (detailed)
 git log --oneline	View changes (briefly)
 git diff [source branch] [target branch]	Preview changes before merging
+
+Sure, here are the steps to merge a develop branch into the master branch in Git:
+
+First, switch to the master branch:
+git checkout master
+
+Then, merge the develop branch into the master branch:
+git merge develop
+
+If there are any merge conflicts, you’ll need to resolve them. Once you’ve resolved all conflicts, you can commit the merge:
+git commit -m "Merged develop into master"
+
+Finally, push your changes to the remote repository:
+git push origin master
+
+Please note that it’s a good practice to ensure that your local master branch is up-to-date with the remote master branch before performing the merge. You can do this by pulling the latest changes from the remote master branch before the merge:
+
+git pull origin master
