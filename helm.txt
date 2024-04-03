@@ -38,3 +38,85 @@ helm repo list: List added chart repositories3.
 helm repo update: Update information of available charts locally from chart repositories3.
 helm repo remove <repo-name>: Remove a chart repository3.
 helm repo index <DIR>: Generate an index file given a directory containing packaged charts
+
+Sure, here are the steps to install Grafana on Minikube using Helm:
+
+Add the Grafana Helm repository123:
+helm repo add grafana https://grafana.github.io/helm-charts
+
+Update the Helm repository1:
+helm repo update
+
+Create a namespace for Grafana1. For example, you can create a namespace named monitoring:
+kubectl create namespace monitoring
+
+Install Grafana using Helm123. Make sure to install it in the namespace you created:
+helm install grafana grafana/grafana --namespace monitoring
+
+Expose Grafana service23. This will allow you to access Grafana’s web interface:
+kubectl expose service grafana --type=NodePort --target-port=3000 --name=grafana-np --namespace monitoring
+
+Access Grafana’s web interface2. If you’re using Minikube, you can do this with the following command:
+minikube service grafana-np -n monitoring
+
+Please replace monitoring with the namespace you want to use. Also, note that Grafana is password protected by default. You can retrieve the admin user password with the following command2:
+
+kubectl get secret --namespace monitoring grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+
+This will give you the password which you can use to log in to Grafana with the username admin.
+
+Please let me know if you need further assistance! 😊
+
+Más información
+1
+
+grafana.com
+2
+
+blog.marcnuri.com
+3
+
+medium.com
+4
+
+medium.com
+5
+
+grafana.github.io
+6
+
+prometheus-community.github.io
+7
+
+prometheus-server
++3 más
+
+
+Usted
+now the steps to install prometheus on minikube using helm
+Copilot
+
+Prometheus
+Prometheus
+Explorar
+Sure, here are the steps to install Prometheus on Minikube using Helm:
+
+Add the Prometheus Helm repository12:
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+
+Update the Helm repository1:
+helm repo update
+
+Create a namespace for Prometheus1. For example, you can create a namespace named monitoring:
+kubectl create namespace monitoring
+
+Install Prometheus using Helm12. Make sure to install it in the namespace you created:
+helm install prometheus prometheus-community/prometheus --namespace monitoring
+
+Expose Prometheus service12. This will allow you to access Prometheus’s web interface:
+kubectl expose service prometheus-server --type=NodePort --target-port=9090 --name=prometheus-server-np --namespace monitoring
+
+Access Prometheus’s web interface1. If you’re using Minikube, you can do this with the following command:
+minikube service prometheus-server-np -n monitoring
+
+Please replace monitoring with the namespace you want to use.
