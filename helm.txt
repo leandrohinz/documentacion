@@ -25,6 +25,14 @@ helm search repo --repo-name=<repo-name> --devel -l: Search a specific repositor
 helm search repo --repo-url=<repo-url> --devel -l: Search a specific repository by URL for charts, including pre-release versions2.
 
 Repo Commands
+
+To validate a Helm chart, you can use the following commands:
+
+Helm Validate
+helm lint <chart>: This command is used to validate your Helm charts and detect potential issues or errors before deploying them to a Kubernetes cluster1.
+helm template --debug <chart>: This command tests rendering chart templates locally2.
+helm install --dry-run --debug <chart>: This command also renders your chart locally without installing it, but will also check if conflicting resources are already running on the cluster2.
+helm verify <path>: This command verifies that the given chart has a valid provenance file. Provenance files provide cryptographic verification that a chart has not been tampered with, and was packaged by a trusted provider3.
 helm repo add <repo-name> <url>: Add a chart repository3.
 helm repo list: List added chart repositories3.
 helm repo update: Update information of available charts locally from chart repositories3.
