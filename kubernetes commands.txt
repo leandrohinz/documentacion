@@ -17,7 +17,17 @@ kube-controller-manager: Este componente del plano de control ejecuta los contro
 cloud-controller-manager: Este es un componente del plano de control de Kubernetes que incorpora la lógica de control específica de la nube2. Permite vincular tu clúster a la API de tu proveedor de servicios en la nube, y separa los componentes que interactúan con esa plataforma en la nube de los componentes que solo interactúan con tu clúster2.
 Espero que esta información te sea útil para entender el plano de control de Kubernetes. Si tienes más preguntas, no dudes en hacerlas.
 
-Cada tipo de servicio tiene sus propios casos de uso y limitaciones. Elegir el tipo de servicio correcto depende de las necesidades específicas de tu aplicación y del entorno en el que se está ejecutando.
+Sí, es posible administrar el plano de control en Azure Kubernetes Services (AKS). Cuando creas un clúster de AKS, se crea automáticamente un único nodo de plano de control con un tamaño de máquina virtual predeterminado1. También puedes definir el número y el tamaño de las máquinas virtuales del nodo1.
+
+Si decides escalar los grupos de nodos de trabajo, agregar nuevos grupos de nodos o si las necesidades de recursos de las aplicaciones cambian en AKS, puedes escalar manualmente el número de nodos del plano de control en el clúster1. Para lograr durabilidad y alta disponibilidad, se recomienda implementar 3 o 5 nodos de plano de control en un clúster de Kubernetes de producción1.
+
+Aquí tienes un ejemplo de cómo crear un clúster de Kubernetes con 3 nodos de plano de control y 5 nodos de trabajo de Linux en AKS1:
+
+az aksarc create -g my-resource-group --custom-location custom-location-id -n sample-aks-cluster --vnet-id vnet-aks-cluster --control-plane-count 3 --control-plane-vm-size Standard-A4-v2 --node-count 5
+
+Y este es un ejemplo de cómo escalar los nodos del plano de control en un clúster de Kubernetes después de crear el clúster1:
+
+az aksarc update -g my-resource-group -n sample-aks-cluster --control-plane-count 5
 
 install
 
