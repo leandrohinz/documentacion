@@ -1,6 +1,124 @@
 Los comandos de az acr en Azure CLI te permiten administrar registros de contenedores privados con Azure Container Registries. Aquí tienes algunos de los comandos más utilizados:
 
 az acr build: Pone en cola una compilación rápida, proporcionando registros de streaming para una instancia de Azure Container Registry1.
+
+Examples
+Queue a local context as a Linux build, tag it, and push it to the registry.
+
+Azure CLI
+
+Copy
+
+Open Cloud Shell
+az acr build -t sample/hello-world:{{.Run.ID}} -r myregistry .
+Queue a local context as a Linux build, tag it, and push it to the registry without streaming logs.
+
+Azure CLI
+
+Copy
+
+Open Cloud Shell
+az acr build -t sample/hello-world:{{.Run.ID}} -r myregistry --no-logs .
+Queue a local context as a Linux build without pushing it to the registry.
+
+Azure CLI
+
+Copy
+
+Open Cloud Shell
+az acr build -t sample/hello-world:{{.Run.ID}} -r myregistry --no-push .
+Queue a local context as a Linux build without pushing it to the registry.
+
+Azure CLI
+
+Copy
+
+Open Cloud Shell
+az acr build -r myregistry .
+Queue a remote GitHub context as a Windows build, tag it, and push it to the registry.
+
+Azure CLI
+
+Copy
+
+Open Cloud Shell
+az acr build -r myregistry https://github.com/Azure/acr-builder.git -f Windows.Dockerfile --platform windows
+Queue a remote OCI Artifact context build.
+
+Azure CLI
+
+Copy
+
+Open Cloud Shell
+az acr build -r myregistry oci://myregistry.azurecr.io/myartifact:mytag
+Queue a local context as a Linux build on arm/v7 architecture, tag it, and push it to the registry.
+
+Azure CLI
+
+Copy
+
+Open Cloud Shell
+az acr build -t sample/hello-world:{{.Run.ID}} -r myregistry . --platform linux/arm/v7
+Required Parameters
+--registry -r
+The name of the container registry. It should be specified in lower case. You can configure the default registry name using az configure --defaults acr=<registry name>.
+
+Optional Parameters
+--agent-pool
+Preview
+The name of the agent pool.
+
+--auth-mode
+Auth mode of the source registry.
+
+accepted values: Default, None
+--build-arg
+Build argument in '--build-arg name[=value]' format. Multiples supported by passing --build-arg multiple times.
+
+--file -f
+The relative path of the the docker file to the source code root folder. Default to 'Dockerfile'.
+
+--image -t
+The name and tag of the image using the format: '-t repo/image:tag'. Multiple tags are supported by passing -t multiple times.
+
+--log-template
+Preview
+The repository and tag template for run log artifact using the format: 'log/repo:tag' (e.g., 'acr/logs:{{.Run.ID}}'). Only applicable to CMK enabled registry.
+
+--no-format
+Indicates whether the logs should be displayed in raw format.
+
+default value: False
+--no-logs
+Do not show logs after successfully queuing the build.
+
+default value: False
+--no-push
+Indicates whether the image built should be pushed to the registry.
+
+default value: False
+--no-wait
+Do not wait for the build to complete and return immediately after queuing the build.
+
+default value: False
+--platform
+The platform where build/task is run, Eg, 'windows' and 'linux'. When it's used in build commands, it also can be specified in 'os/arch/variant' format for the resulting image. Eg, linux/arm/v7. The 'arch' and 'variant' parts are optional.
+
+--resource-group -g
+Name of resource group. You can configure the default group using az configure --defaults group=<name>.
+
+--secret-build-arg
+Secret build argument in '--secret-build-arg name[=value]' format. Multiples supported by passing '--secret-build-arg name[=value]' multiple times.
+
+--target
+The name of the target build stage.
+
+--timeout
+The timeout in seconds.
+
+<SOURCE_LOCATION>
+The local source code directory path (e.g., './src'), or the URL to a git repository (e.g., 'https://github.com/Azure-Samples/acr-build-helloworld-node.git') or a remote tarball (e.g., 'http://server/context.tar.gz'), or the repository of an OCI artifact in an Azure container registry (e.g., 'oci://myregistry.azurecr.io/myartifact:mytag').
+
 az acr check-health: Obtiene información de estado sobre el entorno y, opcionalmente, un registro de destino1.
 az acr check-name: Comprueba si un nombre Azure Container Registry es válido y está disponible para su uso1.
 az acr create: Crea un nuevo registro de contenedores2.
