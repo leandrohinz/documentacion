@@ -1,0 +1,16 @@
+Los comandos de az acr en Azure CLI te permiten administrar registros de contenedores privados con Azure Container Registries. Aquí tienes algunos de los comandos más utilizados:
+
+az acr build: Pone en cola una compilación rápida, proporcionando registros de streaming para una instancia de Azure Container Registry1.
+az acr check-health: Obtiene información de estado sobre el entorno y, opcionalmente, un registro de destino1.
+az acr check-name: Comprueba si un nombre Azure Container Registry es válido y está disponible para su uso1.
+az acr create: Crea un nuevo registro de contenedores2.
+az acr delete: Elimina un registro de contenedores existente2.
+Además, hay comandos para administrar grupos de agentes de tareas privadas (az acr agentpool), administrar el streaming de artefactos (az acr artifact-streaming), y administrar reglas de caché (az acr cache), entre otros
+
+az acr import: Importa una imagen a un registro de contenedores1.
+az acr list: Enumera todos los registros de contenedores en una suscripción o grupo de recursos1.
+az acr login: Autentica con un registro de contenedores1.
+az acr show: Muestra las propiedades de un registro de contenedores1.
+az acr show-endpoints: Muestra los puntos finales de un registro de contenedores1.
+az acr show-usage: Muestra el uso de un registro de contenedores1.
+az acr update: Actualiza un registro de contenedores1.
