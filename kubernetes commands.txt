@@ -8,6 +8,15 @@ LoadBalancer: Este tipo de servicio expone el servicio externamente utilizando e
 
 ExternalName: Este tipo de servicio permite definir un servicio en función de un nombre DNS existente. No se utiliza ningún tipo de proxy.
 
+El plano de control de Kubernetes es responsable de mantener el estado deseado de cualquier objeto en el clúster1. También administra los nodos trabajadores y los pods1. Se compone de varios componentes23:
+
+kube-apiserver: Es el servidor de la API y el componente del plano de control de Kubernetes que expone la API de Kubernetes23. Recibe las peticiones y actualiza acordemente el estado en etcd3. Puede escalar horizontalmente para balancear la carga entre varias instancias23.
+etcd: Es un almacén de datos persistente, consistente y distribuido de clave-valor utilizado para almacenar toda a la información del clúster de Kubernetes23. Es importante tener una estrategia de respaldo para los datos almacenados en etcd23.
+kube-scheduler: Este componente del plano de control está pendiente de los Pods que no tienen ningún nodo asignado y selecciona uno donde ejecutarlo23. Para decidir en qué nodo se ejecutará el pod, se tienen en cuenta diversos factores como requisitos de recursos, restricciones de hardware/software/políticas, afinidad y anti-afinidad, localización de datos dependientes, entre otros23.
+kube-controller-manager: Este componente del plano de control ejecuta los controladores de Kubernetes23. Cada controlador es un proceso independiente, pero para reducir la complejidad, todos se compilan en un único binario y se ejecuta en un mismo proceso23. Algunos ejemplos de controladores son: Controlador de nodos, Controlador de replicación, Controlador de endpoints, entre otros23.
+cloud-controller-manager: Este es un componente del plano de control de Kubernetes que incorpora la lógica de control específica de la nube2. Permite vincular tu clúster a la API de tu proveedor de servicios en la nube, y separa los componentes que interactúan con esa plataforma en la nube de los componentes que solo interactúan con tu clúster2.
+Espero que esta información te sea útil para entender el plano de control de Kubernetes. Si tienes más preguntas, no dudes en hacerlas.
+
 Cada tipo de servicio tiene sus propios casos de uso y limitaciones. Elegir el tipo de servicio correcto depende de las necesidades específicas de tu aplicación y del entorno en el que se está ejecutando.
 
 install
