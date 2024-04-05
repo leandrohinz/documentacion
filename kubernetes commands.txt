@@ -8,7 +8,7 @@ LoadBalancer: Este tipo de servicio expone el servicio externamente utilizando e
 
 ExternalName: Este tipo de servicio permite definir un servicio en función de un nombre DNS existente. No se utiliza ningún tipo de proxy.
 
-El plano de control de Kubernetes es responsable de mantener el estado deseado de cualquier objeto en el clúster1. También administra los nodos trabajadores y los pods1. Se compone de varios componentes23:
+El plano de control (control plane) de Kubernetes es responsable de mantener el estado deseado de cualquier objeto en el clúster1. También administra los nodos trabajadores y los pods1. Se compone de varios componentes23:
 
 kube-apiserver: Es el servidor de la API y el componente del plano de control de Kubernetes que expone la API de Kubernetes23. Recibe las peticiones y actualiza acordemente el estado en etcd3. Puede escalar horizontalmente para balancear la carga entre varias instancias23.
 etcd: Es un almacén de datos persistente, consistente y distribuido de clave-valor utilizado para almacenar toda a la información del clúster de Kubernetes23. Es importante tener una estrategia de respaldo para los datos almacenados en etcd23.
