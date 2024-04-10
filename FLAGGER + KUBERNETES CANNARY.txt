@@ -1,0 +1,153 @@
+Flagger is a Kubernetes operator that automates the promotion of canary deployments using Istio, Linkerd, App Mesh, NGINX, Contour, or Gloo routing for traffic shifting and Prometheus metrics for canary analysis. Below is an example of how you can use Flagger with Istio for canary deployments:
+
+1. First, you need to install Flagger in your Kubernetes cluster. You can do this using Helm:
+
+```bash
+helm repo add flagger https://flagger.app
+helm upgrade -i flagger flagger/flagger --namespace=istio-system --set crd.create=false
+```
+
+2. After Flagger is installed, you need to set up your Kubernetes deployment with the appropriate annotations for Flagger to manage it. For example:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+  namespace: mynamespace
+  labels:
+    app: myapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+      annotations:
+        "flagger.app/name": "myapp"
+        "flagger.app/traffic": "75"
+        "flagger.app/metrics": "prometheus"
+        "flagger.app/labels": "app"
+    spec:
+      containers:
+      - name: myapp
+        image: myapp:latest
+        ports:
+        - containerPort: 80
+```
+
+In this example, the deployment is annotated with the necessary Flagger annotations, specifying the name of the deployment, the percentage of traffic to route to the canary version, the type of metrics to use for analysis, and the labels to use for routing.
+
+3. Once your deployment is set up, you can create a canary object to define your canary deployment strategy:
+
+```yaml
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: myapp
+  namespace: mynamespace
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp
+  progressDeadlineSeconds: 60
+  service:
+    port: 80
+  analysis:
+    interval: 1m
+    threshold: 5
+    stepWeight: 5
+    metrics:
+    - name: request-success-rate
+      thresholdRange:
+        min: 99
+```
+
+This example sets up a canary deployment for the `myapp` deployment, with a progress deadline of 60 seconds, routing traffic to port 80. It specifies the analysis interval, threshold, step weight, and the metric (request success rate) with its threshold range.
+
+4. Finally, you can apply the canary object to start the canary deployment:
+
+```bash
+kubectl apply -f canary.yaml
+```
+
+Flagger will then automatically manage the traffic shifting based on the defined strategy and metrics, gradually promoting the canary version if it meets the criteria.
+
+***********************************************************
+
+Flagger es una herramienta que automatiza el proceso de despliegue canario en Kubernetes. Aquí tienes un ejemplo de cómo usar Flagger junto con un Dockerfile para implementar un Canary Deployment:
+
+Dockerfile:
+Usaremos el mismo Dockerfile que se proporcionó en el ejemplo anterior.
+
+Deployment y Service en Kubernetes con Flagger:
+Aquí tienes un ejemplo de cómo definir un Canary Deployment utilizando Flagger en Kubernetes:
+
+yaml
+Copy code
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 3 # 3 réplicas para el despliegue principal
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-app
+        image: your-registry/your-app:latest
+        ports:
+        - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app
+spec:
+  selector:
+    app: my-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+---
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: my-app
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: my-app
+  progressDeadlineSeconds: 60
+  service:
+    name: my-app
+    port: 80
+  analysis:
+    interval: 1m
+    threshold: 5
+    iterations: 10
+    match:
+      - headers:
+          x-user:
+            exact: "test"
+    webhooks:
+      - name: load-test
+        url: http://flagger-loadtester.test/
+        timeout: 5s
+En este ejemplo, estamos definiendo un Deployment (my-app) con tres réplicas, un Service para exponer la aplicación y un Canary resource que utiliza Flagger.
+
+El recurso Canary está configurado para realizar análisis de tráfico entre el despliegue principal y el despliegue canario, utilizando una condición de coincidencia en las cabeceras HTTP (x-user: test) para dirigir el tráfico al despliegue canario. También se especifica un webhook para realizar pruebas de carga en la aplicación.
+
+Recuerda reemplazar your-registry/your-app con la ruta de tu imagen de Docker. Además, ajusta las configuraciones de Flagger según sea necesario para tu caso de uso.

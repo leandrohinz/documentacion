@@ -1,0 +1,153 @@
+yaml pipeline ado y terraform code:
+
+trigger:
+- main
+
+variables:
+  azureSubscription: '<nombre_de_tu_suscripción>'
+  terraformServiceConnection: '<nombre_de_la_conexión_de_servicio_terraform>'
+  terraformWorkingDirectory: '<directorio_de_trabajo_de_terraform>'
+  kubernetesCluster: '<nombre_de_tu_cluster>'
+  acrName: '<nombre_de_tu_registro_de_contenedores>'
+  imageRepository: '<nombre_de_tu_repositorio_de_imágenes>'
+  frontendService: '<nombre_del_servicio_frontend>'
+  frontendDeployment: '<nombre_de_la_deployment_frontend>'
+  appName: 'frontend-app'
+  namespace: 'default'
+
+jobs:
+- job: Terraform_Deploy
+  displayName: 'Deploy Infrastructure with Terraform'
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - task: TerraformCLI@2
+    displayName: 'Initialize Terraform'
+    inputs:
+      workingDirectory: '$(terraformWorkingDirectory)'
+      command: 'init'
+      backendServiceArm: '$(terraformServiceConnection)'
+      backendAzureRmResourceGroupName: '<nombre_de_tu_grupo_de_recursos>'
+      backendAzureRmStorageAccountName: '<nombre_de_tu_cuenta_de_almacenamiento>'
+      backendAzureRmContainerName: '<nombre_de_tu_contenedor_de_almacenamiento>'
+      backendAzureRmKey: 'terraform.tfstate'
+
+  - task: TerraformCLI@2
+    displayName: 'Apply Terraform'
+    inputs:
+      workingDirectory: '$(terraformWorkingDirectory)'
+      command: 'apply'
+      environmentServiceNameAzureRM: '$(azureSubscription)'
+      environment: 'AzureCloud'
+
+- job: Build_and_Push_Container
+  displayName: 'Build and Push Docker Image'
+  dependsOn: Terraform_Deploy
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - task: Docker@2
+    displayName: 'Build an image'
+    inputs:
+      command: 'build'
+      dockerfile: 'Dockerfile'
+      tags: '$(acrName)/$(imageRepository):$(Build.BuildId)'
+  
+  - task: Docker@2
+    displayName: 'Push image to registry'
+    inputs:
+      command: 'push'
+      containerRegistry: 'acrConnection'
+      repository: '$(imageRepository)'
+      tags: '$(Build.BuildId)'
+
+- job: Deploy_to_Kubernetes
+  displayName: 'Deploy to Kubernetes'
+  dependsOn: Build_and_Push_Container
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - task: KubernetesManifest@0
+    displayName: 'Deploy to Kubernetes cluster'
+    inputs:
+      action: 'deploy'
+      kubernetesServiceEndpoint: '<nombre_de_tu_endpoint_de_servicio_kubernetes>'
+      namespace: '$(namespace)'
+      manifests: |
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: $(frontendDeployment)
+        spec:
+          replicas: 4
+          selector:
+            matchLabels:
+              app: $(appName)
+          template:
+            metadata:
+              labels:
+                app: $(appName)
+            spec:
+              containers:
+              - name: $(appName)
+                image: $(acrName)/$(imageRepository):$(Build.BuildId)
+                ports:
+                - containerPort: 80
+
+      containers: '$(appName)'
+      imagePullSecrets: |
+        [{
+          "name": "acrConnection"
+        }]
+
+- job: Canary_Deployment
+  displayName: 'Canary Deployment'
+  dependsOn: Deploy_to_Kubernetes
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - script: |
+      kubectl patch deployment $(frontendDeployment) -n $(namespace) -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":"40%","maxUnavailable":"60%"}}}}'
+    displayName: 'Apply Canary Deployment strategy'
+
+
+----------------------------------------------------
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "example" {
+  name     = "example-resources"
+  location = "East US"
+}
+
+resource "azurerm_container_registry" "example" {
+  name                     = "exampleregistry"
+  resource_group_name      = azurerm_resource_group.example.name
+  location                 = azurerm_resource_group.example.location
+  sku                      = "Basic"
+}
+
+resource "azurerm_kubernetes_cluster" "example" {
+  name                = "example-cluster"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  dns_prefix          = "example-cluster"
+
+  default_node_pool {
+    name       = "default"
+    node_count = 1
+    vm_size    = "Standard_DS2_v2"
+  }
+
+  service_principal {
+    client_id     = "XXXXXXXXXXXXXXXXX" # Your Service Principal client_id
+    client_secret = "XXXXXXXXXXXXXXXXX" # Your Service Principal client_secret
+  }
+
+  tags = {
+    environment = "testing"
+  }
+}
+

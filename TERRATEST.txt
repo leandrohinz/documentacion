@@ -1,0 +1,74 @@
+## Bing
+Sure, I can provide an example of how you might use Terratest to test the deployment of a Kubernetes cluster in AWS. This example assumes that you have an AWS account set up and configured, and that you're using EKS to manage your Kubernetes cluster.
+First, you'll need to install Terratest and its dependencies. You can do this by adding the following to your go.mod file:
+
+require (
+	github.com/gruntwork-io/terratest v0.38.2
+	github.com/aws/aws-sdk-go v1.42.0
+)
+
+Next, you'll need to write a test that deploys your EKS cluster and then validates that it's working as expected. Here's an example of what this might look like:
+
+package test
+
+import (
+	"testing"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/gruntwork-io/terratest/modules/aws"
+	"github.com/gruntwork-io/terratest/modules/k8s"
+	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/gruntwork-io/terratest/modules/terraform"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestEksCluster(t *testing.T) {
+	t.Parallel()
+
+	awsRegion := "us-west-2"
+	uniqueID := random.UniqueId()
+	clusterName := "terratest-eks-" + uniqueID
+
+	terraformOptions := &terraform.Options{
+		TerraformDir: "../examples/eks",
+		Vars: map[string]interface{}{
+			"cluster_name": clusterName,
+		},
+		EnvVars: map[string]string{
+			"AWS_DEFAULT_REGION": awsRegion,
+		},
+	}
+
+	defer terraform.Destroy(t, terraformOptions)
+
+	terraform.InitAndApply(t, terraformOptions)
+
+	awsSession := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String(awsRegion),
+	}))
+
+	eksSvc := eks.New(awsSession)
+
+	_, err := aws.WaitForEksClusterToBeActiveE(t, eksSvc, clusterName)
+	assert.NoError(t, err)
+
+	kubeconfig := aws.GetKubeconfigForAuthenticatedSessionFromEks(t, eksSvc, clusterName)
+
+	options := k8s.NewKubectlOptions("", kubeconfig, clusterName)
+
+	k8s.RunKubectl(t, options, "get", "nodes")
+}
+
+This test does the following:
+- It uses Terraform to deploy an EKS cluster with a unique name.
+- It waits for the EKS cluster to become active.
+- It retrieves the kubeconfig for the EKS cluster.
+- It uses kubectl to list the nodes in the EKS cluster.
+You can run this test using the go test command:
+
+go test -v -run TestEksCluster
+
+Please note that this is a simplified example and might not cover all the aspects of a production-grade setup. Always review and adjust according to your specific requirements and infrastructure. Also, remember to follow best practices for managing secrets and sensitive data.
+I hope this helps! Let me know if you have any other questions. 😊

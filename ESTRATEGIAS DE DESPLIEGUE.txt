@@ -1,0 +1,251 @@
+https://www.youtube.com/watch?v=AWVTKBUnoIg&ab_channel=ByteByteGo
+
+ESTRATEGIA CANARY ADO Y KUBERNETES
+
+trigger: - main
+pool: vmImage: ubuntu-latest
+variables:
+  imageName: azure-pipelines-canary-k8s
+  dockerRegistryServiceConnection: dockerRegistryServiceConnectionName
+  imageRepository: 'azure-pipelines-canary-k8s'
+  containerRegistry: example.azurecr.io
+  tag: '$ (Build.BuildId)'
+stages:
+- stage: Build
+  displayName: Build stage
+  jobs:
+  - job: Build
+    displayName: Build
+    pool: vmImage: ubuntu-latest
+    steps:
+    - task: Docker@2
+      displayName: Build and push image
+      inputs:
+        containerRegistry: $ (dockerRegistryServiceConnection)
+        repository: $ (imageName)
+        command: buildAndPush
+        Dockerfile: app/Dockerfile
+        tags: | $ (tag)
+    - publish: manifests
+      artifact: manifests
+    - publish: misc
+      artifact: misc
+
+PIPELINE ADO CANNARY TEST
+
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '14.x'
+  displayName: 'Install Node.js'
+
+- script: |
+    npm install
+    npm test
+  displayName: 'Install and test application'
+
+- task: Docker@2
+  inputs:
+    containerRegistry: 'myContainerRegistryConnection'
+    repository: 'myApp'
+    command: 'build'
+    Dockerfile: 'Dockerfile'
+    tags: |
+      $(Build.BuildId)
+
+- task: KubernetesManifest@0
+  inputs:
+    action: 'deploy'
+    kubernetesServiceConnection: 'myKubernetesConnection'
+    namespace: 'default'
+    manifests: |
+      deployment.yaml
+    containers: 'myAppContainer'
+    imagePullSecrets: 'myImagePullSecret'
+
+
+
+
+ESTRATEGIA BLUE GREEN ADO Y WEBAPP
+
+trigger:
+- master
+
+variables:
+  vmImageName: 'ubuntu-latest'
+  azureSubscription: 'your-azure-subscription'
+  webAppName: 'your-web-app-name'
+  environmentName: 'your-environment-name'
+
+stages:
+- stage: Build
+  displayName: 'Build stage'
+  jobs:
+  - job: Build
+    displayName: 'Build'
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - script: echo Hello, world!
+      displayName: 'Run a one-line script'
+    - script: |
+        echo Add other tasks to build, test, and deploy your project.
+        echo See https://aka.ms/yaml
+      displayName: 'Run a multi-line script'
+
+- stage: Deploy
+  displayName: 'Deploy stage'
+  dependsOn: Build
+  jobs:
+  - deployment: Deploy
+    displayName: 'Deploy'
+    environment: $(environmentName)
+    pool:
+      vmImage: $(vmImageName)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: none
+          - task: AzureRmWebAppDeployment@4
+            inputs:
+              ConnectionType: 'AzureRM'
+              azureSubscription: $(azureSubscription)
+              appType: 'webApp'
+              WebAppName: $(webAppName)
+              packageForLinux: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
+
+ESTRATEGIA BLUE GREEN ADO Y KUBERNETES
+
+La estrategia de implementación Blue/Green en Azure DevOps con Kubernetes se utiliza para desplegar nuevas versiones de una aplicación en un entorno inactivo mientras el entorno activo sigue funcionando. Una vez que la nueva versión está lista y probada, el tráfico se redirige al entorno inactivo, que se convierte en el nuevo entorno activo.
+
+En este ejemplo, se crean dos implementaciones, my-app-blue y my-app-green. Inicialmente, todas las solicitudes se dirigen a my-app-blue (la versión “azul”), ya que el servicio my-app selecciona las pods con la etiqueta version: blue. Cuando estés listo para cambiar a la versión “verde”, puedes escalar el número de réplicas de my-app-green y actualizar el selector del servicio para version: green.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app-blue
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+      version: blue
+  template:
+    metadata:
+      labels:
+        app: my-app
+        version: blue
+    spec:
+      containers:
+      - name: my-app
+        image: my-app:blue
+        ports:
+        - containerPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app-green
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: my-app
+      version: green
+  template:
+    metadata:
+      labels:
+        app: my-app
+        version: green
+    spec:
+      containers:
+      - name: my-app
+        image: my-app:green
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app
+spec:
+  selector:
+    app: my-app
+    version: blue
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+
+ESTRATEGIA RAMPED ROLLING ADO Y KUBERNETES
+
+La estrategia de implementación Ramped (también conocida como implementación Rolling) en Azure DevOps con Kubernetes se utiliza para desplegar nuevas versiones de una aplicación de manera gradual, reemplazando las instancias de la versión antigua de la aplicación con la nueva versión una por una12.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-app
+        image: my-app:v2
+        ports:
+        - containerPort: 8080
+
+ESTRATEGIA RECREATE
+
+La estrategia de implementación Recreate en Azure DevOps con Kubernetes se utiliza para desplegar nuevas versiones de una aplicación eliminando completamente la versión antigua antes de desplegar la nueva.
+En este ejemplo, se crea una implementación llamada my-app. La estrategia de implementación se configura como Recreate, lo que significa que Kubernetes eliminará todas las instancias de la versión antigua de la aplicación antes de desplegar la nueva versión. Una vez que todas las instancias antiguas se han eliminado, Kubernetes desplegará la nueva versión.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-app
+        image: my-app:v2
+        ports:
+        - containerPort: 8080
+
+
+
+
+
+
+
+
+
+
