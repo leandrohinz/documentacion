@@ -487,3 +487,74 @@ Container: Utiliza esta plantilla cuando quieras desplegar un contenedor Docker 
 Script: Úsalo cuando necesites ejecutar un script como parte del despliegue.
 Resource: Utiliza esta plantilla cuando quieras desplegar recursos Kubernetes definidos en archivos YAML.
 Suspend: Úsalo cuando desees suspender temporalmente la sincronización automática de una aplicación, por ejemplo, durante tareas de mantenimiento o actualización.
+
+Plantilla de Steps:
+
+Esta plantilla se utiliza para definir una secuencia de pasos que se ejecutarán en orden.
+
+yaml
+Copy code
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: steps-example
+spec:
+  destination:
+    namespace: my-namespace
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: https://github.com/example/steps-app.git
+    path: manifests
+    targetRevision: main
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  template:
+    steps:
+      - name: step1
+        container:
+          image: step1-image:latest
+      - name: step2
+        container:
+          image: step2-image:latest
+En este ejemplo, la aplicación "steps-example" ejecutará dos pasos en orden. Cada paso utiliza una plantilla de contenedor para ejecutar una imagen de contenedor específica.
+
+Plantilla de DAG (Grafo Acíclico Dirigido):
+
+Esta plantilla se utiliza para definir una red de pasos interconectados que pueden ejecutarse en paralelo o en secuencia.
+
+yaml
+Copy code
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dag-example
+spec:
+  destination:
+    namespace: my-namespace
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: https://github.com/example/dag-app.git
+    path: manifests
+    targetRevision: main
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  template:
+    dag:
+      tasks:
+        - name: task1
+          template: task1-template
+          dependencies: []
+        - name: task2
+          template: task2-template
+          dependencies: [task1]
+En este ejemplo, la aplicación "dag-example" define dos tareas (task1 y task2) que pueden ejecutarse en paralelo. La segunda tarea (task2) depende de la finalización exitosa de la primera tarea (task1). Cada tarea utiliza una plantilla definida previamente (task1-template y task2-template). Este tipo de plantilla es útil cuando necesitas modelar flujos de trabajo complejos con dependencias entre diferentes pasos.
