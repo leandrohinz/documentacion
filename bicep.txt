@@ -149,3 +149,23 @@ param nicModulePath string = './networking.bicep'
 param nsgModulePath string = './networking.bicep'
 
 En este archivo, se definen los valores de las variables que se utilizarán en los archivos de implementación (vm.bicep y networking.bicep). Estas variables incluyen la ubicación de los recursos, el prefijo del nombre de la máquina virtual, el nombre de usuario y la contraseña del administrador, así como las rutas de los módulos que se utilizarán en el archivo principal. Puedes ajustar estos valores según tus necesidades y requisitos específicos de implementación.
+
+Para implementar los recursos en tu suscripción de Azure utilizando los archivos Bicep que hemos creado, puedes seguir estos pasos:
+
+-----------------------------------------------------------------------------------
+Compilación de archivos Bicep: Antes de desplegar los recursos, necesitas compilar los archivos Bicep en plantillas ARM (Azure Resource Manager). Puedes hacerlo utilizando el comando bicep build en la línea de comandos. Por ejemplo:
+bash
+Copy code
+bicep build vm.bicep
+Este comando generará un archivo vm.json que es la plantilla ARM resultante basada en tu archivo Bicep.
+
+Implementación de recursos en Azure: Una vez que tengas la plantilla ARM generada, puedes implementarla en tu suscripción de Azure. Puedes utilizar la CLI de Azure o Azure PowerShell para hacer esto.
+Por ejemplo, utilizando la CLI de Azure, puedes usar el comando az deployment group create:
+
+bash
+Copy code
+az deployment group create --resource-group <nombre_del_grupo_de_recursos> --template-file vm.json
+Asegúrate de reemplazar <nombre_del_grupo_de_recursos> con el nombre de tu grupo de recursos en Azure.
+
+Observación del progreso: Durante el despliegue, la CLI de Azure mostrará el progreso y cualquier error que pueda ocurrir durante la implementación.
+Una vez completado, los recursos especificados en tus archivos Bicep deberían estar desplegados en tu suscripción de Azure, listos para su uso.
