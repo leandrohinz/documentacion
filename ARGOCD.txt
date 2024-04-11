@@ -355,3 +355,135 @@ spec:
       namePrefix: my-
       path: overlays/dev
 En este ejemplo, la aplicación "kustomize-example" utiliza una plantilla Kustomize para desplegar recursos desde un repositorio remoto. Se especifica la ruta al directorio de overlays dentro del repositorio, junto con un prefijo de nombre opcional para los recursos desplegados.
+
+----------------------------------------------------------
+
+Plantilla tipo Container:
+
+Esta plantilla se utiliza cuando deseas desplegar un contenedor Docker directamente en Kubernetes.
+
+yaml
+Copy code
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: container-example
+spec:
+  destination:
+    namespace: my-namespace
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: https://github.com/example/container-app.git
+    path: manifests
+    targetRevision: main
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  template:
+    container:
+      image: my-container-image:latest
+      command: ["./start.sh"]
+      args: ["--config", "config.yaml"]
+Plantilla tipo Script:
+
+Esta plantilla se utiliza cuando deseas ejecutar un script como parte de tu despliegue.
+
+yaml
+Copy code
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: script-example
+spec:
+  destination:
+    namespace: my-namespace
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: https://github.com/example/script-app.git
+    path: scripts
+    targetRevision: main
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  template:
+    script:
+      image: my-script-image:latest
+      command: ["./run.sh"]
+      args: ["arg1", "arg2"]
+Plantilla tipo Resource:
+
+Esta plantilla se utiliza cuando deseas desplegar recursos Kubernetes definidos en archivos YAML.
+
+yaml
+Copy code
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: resource-example
+spec:
+  destination:
+    namespace: my-namespace
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: https://github.com/example/resource-app.git
+    path: manifests
+    targetRevision: main
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  template:
+    resource:
+      manifest: |
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          name: my-pod
+        spec:
+          containers:
+            - name: my-container
+              image: my-container-image:latest
+Plantilla tipo Suspend:
+
+Esta plantilla se utiliza cuando deseas suspender la sincronización automática de una aplicación.
+
+yaml
+Copy code
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: suspend-example
+spec:
+  destination:
+    namespace: my-namespace
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: https://github.com/example/suspend-app.git
+    path: manifests
+    targetRevision: main
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  template:
+    suspend: {}
+Diferencias y cuándo usar cada uno:
+
+Container: Utiliza esta plantilla cuando quieras desplegar un contenedor Docker en Kubernetes.
+Script: Úsalo cuando necesites ejecutar un script como parte del despliegue.
+Resource: Utiliza esta plantilla cuando quieras desplegar recursos Kubernetes definidos en archivos YAML.
+Suspend: Úsalo cuando desees suspender temporalmente la sincronización automática de una aplicación, por ejemplo, durante tareas de mantenimiento o actualización.
