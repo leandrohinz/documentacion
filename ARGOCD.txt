@@ -289,3 +289,69 @@ make forward-prometheus
 Si queremos eliminar todos los application sets
 
 make deleteall
+
+-----------------------------------------------------------
+
+Ejemplo completo con plantilla Helm:
+
+yaml
+Copy code
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: helm-example
+spec:
+  destination:
+    namespace: my-namespace
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: https://github.com/example/my-helm-charts.git
+    path: my-chart
+    targetRevision: main
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  template:
+    helm:
+      chart: my-chart
+      version: "1.0.0"
+      releaseName: my-release
+      values: |
+        replicas: 3
+        image:
+          repository: my-app
+          tag: latest
+En este ejemplo, la aplicación "helm-example" utiliza una plantilla Helm para desplegar un chart llamado "my-chart" desde un repositorio remoto. Se especifica la versión del chart, el nombre de la release, y se proporcionan valores personalizados para sobrescribir los valores predeterminados del chart.
+
+Ejemplo completo con plantilla Kustomize:
+
+yaml
+Copy code
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kustomize-example
+spec:
+  destination:
+    namespace: my-namespace
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: https://github.com/example/my-kustomize.git
+    path: overlays/dev
+    targetRevision: main
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  template:
+    kustomize:
+      namePrefix: my-
+      path: overlays/dev
+En este ejemplo, la aplicación "kustomize-example" utiliza una plantilla Kustomize para desplegar recursos desde un repositorio remoto. Se especifica la ruta al directorio de overlays dentro del repositorio, junto con un prefijo de nombre opcional para los recursos desplegados.
