@@ -1,0 +1,152 @@
+Claro, puedo darte un ejemplo de cómo hacer esto utilizando archivos Bicep y organizándolos en módulos para una mejor estructura.
+
+Primero, vamos a crear un módulo para la creación de la red virtual (VNet), la tarjeta de interfaz de red (NIC), la dirección IP pública y el grupo de seguridad de red (NSG). Luego, utilizaremos este módulo en otro archivo Bicep para desplegar la máquina virtual dentro del grupo de recursos que creamos anteriormente.
+
+networking.bicep (Módulo para la red y recursos relacionados):
+bicep
+Copy code
+param vnetName string
+param vnetAddressPrefix string
+param subnetName string
+param subnetAddressPrefix string
+param publicIpName string
+param nicName string
+param nsgName string
+
+resource vnet 'Microsoft.Network/virtualNetworks@2021-02-01' = {
+  name: vnetName
+  location: resourceGroup().location
+  properties: {
+    addressSpace: {
+      addressPrefixes: [
+        vnetAddressPrefix
+      ]
+    }
+    subnets: [
+      {
+        name: subnetName
+        properties: {
+          addressPrefix: subnetAddressPrefix
+        }
+      }
+    ]
+  }
+}
+
+resource publicIp 'Microsoft.Network/publicIPAddresses@2021-02-01' = {
+  name: publicIpName
+  location: resourceGroup().location
+  properties: {
+    publicIPAllocationMethod: 'Dynamic'
+  }
+}
+
+resource nsg 'Microsoft.Network/networkSecurityGroups@2021-02-01' = {
+  name: nsgName
+  location: resourceGroup().location
+  properties: {
+    securityRules: []
+  }
+}
+
+resource nic 'Microsoft.Network/networkInterfaces@2021-02-01' = {
+  name: nicName
+  location: resourceGroup().location
+  properties: {
+    ipConfigurations: [
+      {
+        name: 'ipconfig'
+        properties: {
+          subnet: {
+            id: vnet.subnets[0].id
+          }
+          publicIPAddress: {
+            id: publicIp.id
+          }
+          privateIPAllocationMethod: 'Dynamic'
+        }
+      }
+    ]
+    networkSecurityGroup: {
+      id: nsg.id
+    }
+  }
+}
+
+output nicId string = nic.id
+output publicIpId string = publicIp.id
+output nsgId string = nsg.id
+vm.bicep (Archivo principal para desplegar la máquina virtual):
+bicep
+Copy code
+param location string = resourceGroup().location
+param vmName string
+param adminUsername string
+param adminPassword string
+param vmSize string
+param vnetModulePath string
+param publicIpModulePath string
+param nicModulePath string
+param nsgModulePath string
+
+module networking './networking.bicep' = {
+  name: 'networking'
+  params: {
+    vnetName: '${vmName}-vnet'
+    vnetAddressPrefix: '10.0.0.0/16'
+    subnetName: 'subnet'
+    subnetAddressPrefix: '10.0.0.0/24'
+    publicIpName: '${vmName}-publicip'
+    nicName: '${vmName}-nic'
+    nsgName: '${vmName}-nsg'
+  }
+  path: vnetModulePath
+}
+
+resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
+  name: vmName
+  location: location
+  properties: {
+    hardwareProfile: {
+      vmSize: vmSize
+    }
+    osProfile: {
+      computerName: vmName
+      adminUsername: adminUsername
+      adminPassword: adminPassword
+    }
+    networkProfile: {
+      networkInterfaces: [
+        {
+          id: networking.outputs.nicId
+        }
+      ]
+    }
+    storageProfile: {
+      osDisk: {
+        createOption: 'FromImage'
+      }
+    }
+  }
+}
+
+output vmId string = vm.id
+Para utilizar estos archivos, simplemente necesitas definir los parámetros necesarios y luego desplegar el archivo principal vm.bicep, asegurándote de proporcionar las rutas de los módulos (archivos .bicep) según sea necesario.
+
+User
+muestrame el archivo de variables
+ChatGPT
+Claro, puedes definir un archivo de variables para almacenar valores que pueden cambiar según el entorno o el escenario de implementación. Aquí tienes un ejemplo de cómo podría ser ese archivo variables.bicep:
+
+bicep
+Copy code
+param location string = 'East US'
+param vmNamePrefix string = 'myVM'
+param adminUsername string = 'azureuser'
+param adminPassword string = 'YourAdminPassword123!'
+
+param vnetModulePath string = './networking.bicep'
+param publicIpModulePath string = './networking.bicep'
+param nicModulePath string = './networking.bicep'
+param nsgModulePath string = './networking.bicep'
+En este archivo, se definen los valores de las variables que se utilizarán en los archivos de implementación (vm.bicep y networking.bicep). Estas variables incluyen la ubicación de los recursos, el prefijo del nombre de la máquina virtual, el nombre de usuario y la contraseña del administrador, así como las rutas de los módulos que se utilizarán en el archivo principal. Puedes ajustar estos valores según tus necesidades y requisitos específicos de implementación.
