@@ -1,0 +1,156 @@
+terraform init: Inicializa un nuevo directorio de trabajo de Terraform, descargando y configurando los proveedores de recursos necesarios.
+terraform plan: Muestra los cambios propuestos por Terraform en la infraestructura. Este comando no aplica cambios, solo muestra lo que se cambiará.
+terraform apply: Aplica los cambios propuestos por Terraform en la infraestructura. Terraform solicitará confirmación antes de aplicar los cambios.
+terraform destroy: Elimina todos los recursos administrados por Terraform. Terraform solicitará confirmación antes de destruir los recursos.
+terraform validate: Valida la sintaxis de los archivos de configuración de Terraform y verifica si los valores de los recursos son válidos.
+terraform fmt: Formatea los archivos de configuración de Terraform para que sigan las convenciones de estilo recomendadas.
+terraform state: Permite administrar el estado de Terraform, incluida la importación y la visualización del estado actual de la infraestructura.
+terraform output: Muestra el valor de salida de una variable definida en los archivos de configuración de Terraform.
+terraform refresh: Actualiza el estado local de Terraform para que coincida con el estado real de la infraestructura.
+terraform import: Importa recursos existentes a la configuración de Terraform, asociándolos con un recurso correspondiente en los archivos de configuración.
+terraform workspace: Gestiona espacios de trabajo de Terraform, permitiendo trabajar con múltiples entornos de infraestructura de manera más eficiente.
+terraform graph: Genera un gráfico visual de la infraestructura gestionada por Terraform en formato DOT, que puede ser convertido en una imagen para visualizar la relación entre los recursos.
+terraform taint: Marca un recurso como "taint" (contaminado), lo que fuerza su recreación en el próximo plan y apply.
+terraform untaint: Elimina el estado de "taint" de un recurso, permitiendo que Terraform lo gestione normalmente en futuras operaciones.
+terraform state mv: Mueve un recurso en el estado de Terraform de una dirección a otra. Esto puede ser útil si se han renombrado recursos en los archivos de configuración.
+terraform show: Muestra una representación humanamente legible del estado de Terraform, incluyendo los recursos que se están gestionando y sus atributos.
+terraform providers: Muestra una lista de los proveedores de recursos configurados en el directorio de trabajo de Terraform, incluyendo sus versiones.
+terraform version: Muestra la versión de Terraform instalada en el sistema.
+terraform plan -destroy: Ejecuta un plan de destrucción de recursos. Este comando muestra qué recursos serán eliminados cuando ejecutes terraform apply
+terraform force-unlock: Desbloquea manualmente el estado de Terraform. Útil si un bloqueo de estado no se libera correctamente debido a un fallo o cierre inesperado
+terraform state rm aws_instance.example: This command removes the aws_instance.example resource from the Terraform state. After running this command, Terraform will no longer manage this resource, but it will still exist in your cloud provider's infrastructure.
+
+Secure Terraform State in an Azure storage account
+ 
+Terraform state allows for terraform to understand what resources to add, update or delete. When using terraform, the state file is initially stored locally on your computer. This becomes a problem if you are working in a production environment for these couple reasons:
+
+Terraform state files can contain sensitive information
+No ability to share environment resources with team members for collaboration
+No central backup location for state file which holds all environment resources
+So with that here are a list of advantages to storing your terraform state in an azure storage account.
+
+State locking: When running terraform apply, terraform puts a lock on the .tfstate file to prevent other terraform executions at the same time.
+Encryption at rest: Azure storage provides encryption to your file when stored.
+Redundancy: Azure provides redundancy since the blob storage is always replicated.
+
+secure terraform state in azure storage account
+Before getting started you will need to have a free azure account created, terraform and azure cli installed.
+
+Create an azure service principal user azure cli
+In order to be able to create resources in azure we need to create an account we can authenticate with. To create a service principal first you need to login to the azure cli using:
+
+az login
+Once logged in, if you have more than one subscription take the subscription_id which is the “id” field you want and run the command
+
+az account set --subscription="Subscription_ID"
+Now we will create a service principal account that will have the “contributor” role using the following command:
+
+az ad sp create-for-rbac --role="Contributor"  --scopes="/subscriptions/SUBSCRIPTION_ID"
+Once the output displays on the screen, we need to login as the service principal running the following command:
+
+az login --service-principal --username "appid"  --password "password" --tenant "tenant"
+Create azure remote state storage account
+Before we can utilize azure as our backend we need to create an azure storage account to store the remote state file. We will create this outside of terraform that way the tfsate does not get automatically deleted if we destroy our terraform environment. Run these commands from your console:
+
+$RESOURCE_GROUP_NAME="tfstate"
+$STORAGE_ACCOUNT_NAME="tfstate$(get-random)"
+$CONTAINER_NAME="tfstate"
+
+# Create resource group
+az group create --name $RESOURCE_GROUP_NAME --location eastus
+
+# Create storage account
+az storage account create --resource-group $RESOURCE_GROUP_NAME --name $STORAGE_ACCOUNT_NAME --sku Standard_LRS  --encryption-services blob
+
+# Create blob container
+az storage container create --name $CONTAINER_NAME --account-name $STORAGE_ACCOUNT_NAME
+
+Create azure storage account backend
+Now that we have everything put together, we can run terraform plan and terraform apply.
+
+First we need to add the terraform block referencing the new backend.
+
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "=3.23.0"
+    }
+  }
+  backend "azurerm" {
+    resource_group_name  = "tfstate"
+    storage_account_name = "tfstate755331626"
+    container_name       = "tfstate"
+    key                  = "terraform.tfstate"
+      }
+}
+
+provider "azurerm" {
+  features {}
+}
+
+you will need to fill the backend “azurerm” values in with the required values that match your configuration. In order for you to access your storage container you need a key that you can obtain by running:
+
+az storage account keys list --resource-group tfstate --account-name <name of storage account>
+you should get a list of keys that will then allow you to run the following command to put the key in an environment variable for terraform to see
+
+$env:ARM_ACCESS_KEY="access key"
+Next you want to copy the below code into your editor of choice and put the following commands in: terraform init, terraform plan, terraform apply.
+
+You will now see that your local tfstate file will no longer have anything in it or will be gone. Now go to your storage container in azure and you should now see your tfstate file.
+
+
+--------------------------------------------------
+
+In Terraform, the term “lease state” is often associated with the concept of state locking1.
+
+Terraform uses state to map real-world resources to your configuration, keep track of metadata, and improve performance for large infrastructures2. State locking is a feature that, if supported by your backend, locks your state for all operations that could write state1. This prevents others from acquiring the lock and potentially corrupting your state1.
+
+State locking happens automatically on all operations that could write state1. If state locking fails, Terraform will not continue1. You can disable state locking for most commands with the -lock flag, but it is not recommended1.
+
+If the state is locked and you’re unable to release it, you might see the state file as ‘Leased’ under the leased state column in the storage account34. In such cases, you can manually unlock the state using the force-unlock command1. Be very careful with this command. If you unlock the state when someone else is holding the lock, it could cause multiple writers1. Force unlock should only be used to unlock your own lock in the situation where automatic unlocking failed1. To protect you, the force-unlock command requires a unique lock ID1. Terraform will output this lock ID if unlocking fails1.
+
+Please note that not all backends support locking1. The documentation for each backend includes details on whether it supports locking or not1.
+
+
+------------------------------------------------------
+
+En Terraform, locals es un término que se refiere a los valores locales1. Un valor local asigna un nombre a una expresión, para que puedas usar el nombre varias veces dentro de un módulo en lugar de repetir la expresión1.
+
+Si estás familiarizado con los lenguajes de programación tradicionales, puede ser útil comparar los módulos de Terraform con las definiciones de funciones:
+
+Las variables de entrada son como los argumentos de la función.
+Los valores de salida son como los valores de retorno de la función.
+Los valores locales son como las variables locales temporales de una función1.
+Puedes declarar un conjunto de valores locales relacionados juntos en un solo bloque de locals1. Las expresiones en los valores locales no están limitadas a constantes literales; también pueden hacer referencia a otros valores en el módulo para transformarlos o combinarlos, incluyendo variables, atributos de recursos, u otros valores locales1.
+
+Una vez que se declara un valor local, puedes hacer referencia a él en las expresiones como local.<NOMBRE>1. Los valores locales solo pueden ser accedidos en expresiones dentro del módulo donde fueron declarados1.
+
+Los valores locales pueden ser útiles para evitar repetir los mismos valores o expresiones varias veces en una configuración, pero si se usan en exceso también pueden hacer que una configuración sea difícil de leer para los futuros mantenedores al ocultar los valores reales utilizados1. Se recomienda usar los valores locales solo con moderación, en situaciones donde un solo valor o resultado se usa en muchos lugares y es probable que ese valor cambie en el futuro1.
+
+Aquí tienes un ejemplo de cómo se utilizan los locals en Terraform:
+
+locals {
+  service_name = "forum"
+  owner = "Community Team"
+}
+
+locals {
+  # Ids for multiple sets of EC2 instances, merged together
+  instance_ids =  concat(aws_instance.blue.*.id, aws_instance.green.*.id)
+}
+
+locals {
+  # Common tags to be assigned to all resources
+  common_tags = {
+    Service =  local.service_name
+    Owner =  local.owner
+  }
+}
+
+resource "aws_instance" "example" {
+  # ...
+  tags = local.common_tags
+}
+
+En este ejemplo, service_name, owner, instance_ids y common_tags son valores locales1.
