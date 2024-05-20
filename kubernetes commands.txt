@@ -1019,6 +1019,320 @@ spec:
 kubectl apply -n default -f solution.yaml
 
 
+---------------------------------------------------------
+
+kubectl top:
+kubectl top pod: Muestra el uso de CPU y memoria de los pods.
+kubectl top node: Muestra el uso de CPU y memoria de los nodos.
+kubectl exec:
+kubectl exec -it <nombre-del-pod> -- <comando>: Ejecuta un comando en un pod específico.
+Por ejemplo: kubectl exec -it mi-pod -- bash.
+kubectl port-forward:
+kubectl port-forward <nombre-del-pod> <puerto-local>:<puerto-remoto>: Reenvía puertos de un pod a tu máquina local.
+Por ejemplo: kubectl port-forward mi-pod 8080:80.
+kubectl logs:
+kubectl logs <nombre-del-pod>: Muestra los logs de un pod.
+kubectl logs -f <nombre-del-pod>: Muestra en tiempo real los logs de un pod.
+kubectl logs <nombre-del-pod> -c <nombre-del-contenedor>: Muestra los logs de un contenedor específico dentro del pod.
+kubectl describe:
+kubectl describe pod <nombre-del-pod>: Muestra detalles sobre un pod, como sus eventos, configuración y estado actual.
+kubectl rollout:
+kubectl rollout status deployment/<nombre-del-despliegue>: Muestra el estado de un despliegue.
+kubectl rollout history deployment/<nombre-del-despliegue>: Muestra el historial de revisiones de un despliegue.
+kubectl rollout undo deployment/<nombre-del-despliegue>: Revierte un despliegue a una revisión anterior.
+kubectl apply:
+kubectl apply -f <archivo-o-directorio>: Aplica una configuración YAML en un archivo o directorio.
+kubectl apply -f <URL-del-recurso>: Aplica una configuración YAML desde una URL.
+kubectl label y kubectl annotate:
+kubectl label <tipo-de-recurso> <nombre-del-recurso> <clave>=<valor>: Añade una etiqueta a un recurso.
+kubectl annotate <tipo-de-recurso> <nombre-del-recurso> <clave>=<valor>: Añade una anotación a un recurso.
+Estos son solo algunos de los comandos avanzados que kubectl ofrece. Hay muchos más comandos y opciones disponibles, así que te recomendaría revisar la documentación oficial de kubectl para obtener más detalles y explorar más funciones avanzadas.
+
+kubectl diff:
+kubectl diff -f <archivo-o-directorio>: Muestra los cambios que se aplicarán si se aplica una configuración YAML en un archivo o directorio.
+kubectl auth:
+kubectl auth can-i <acción> <recurso>: Comprueba si el usuario actual tiene permisos para realizar una acción en un recurso específico.
+Por ejemplo: kubectl auth can-i get pods.
+kubectl edit:
+kubectl edit <tipo-de-recurso> <nombre-del-recurso>: Abre el recurso en un editor para realizar modificaciones en vivo.
+Por ejemplo: kubectl edit pod mi-pod.
+kubectl patch:
+kubectl patch <tipo-de-recurso> <nombre-del-recurso> --patch "<patch-yaml>": Aplica un parche YAML a un recurso existente.
+Por ejemplo: kubectl patch pod mi-pod --patch '{"spec": {"containers": [{"name": "my-container", "image": "new-image"}]}}'.
+kubectl cp:
+kubectl cp <nombre-del-pod>:<ruta-remota> <ruta-local>: Copia archivos de un pod a tu máquina local o viceversa.
+Por ejemplo: kubectl cp my-pod:/path/to/file /local/path.
+kubectl proxy:
+kubectl proxy: Crea un proxy entre tu máquina local y el clúster Kubernetes, permitiéndote acceder a la API del clúster.
+kubectl explain:
+kubectl explain <tipo-de-recurso>: Muestra una descripción detallada de los campos y las opciones disponibles para un tipo de recurso específico.
+Estos comandos adicionales de kubectl te brindan más opciones para administrar y depurar tus clústeres de Kubernetes de manera efectiva. Puedes explorar más a fondo cada comando en la documentación oficial de Kubernetes para comprender mejor sus usos y aplicaciones específicas.
+
+El comando kubectl drain se utiliza para drenar un nodo del clúster Kubernetes, lo que significa que se marca como "NoSchedule" y se elimina de la selección de nodos para nuevos pods. Este comando es útil cuando necesitas realizar mantenimiento en un nodo, como actualizaciones de sistema operativo, actualizaciones de Kubernetes, o simplemente para retirar un nodo del clúster de forma segura.
+
+La sintaxis básica del comando kubectl drain es la siguiente:
+
+kubectl drain <nombre-del-nodo> [OPTIONS]
+Algunas opciones comunes que puedes utilizar con el comando kubectl drain incluyen:
+
+--ignore-daemonsets: Este flag indica a kubectl que ignore los DaemonSets y continúe con el drenaje del nodo. Por defecto, kubectl no drenará un nodo si hay DaemonSets que tienen pods en él, ya que los DaemonSets garantizan que al menos un pod de cada conjunto se ejecute en cada nodo.
+--force: Este flag fuerza el drenaje del nodo, incluso si hay pods que no se pueden eliminar de forma normal. Esto puede ser útil en situaciones donde los pods no están respondiendo o no se pueden eliminar correctamente.
+--delete-local-data: Este flag indica a kubectl que elimine los pods que tienen almacenamiento local en el nodo. Esto puede ser necesario si los pods están utilizando almacenamiento local y necesitas eliminarlos para drenar el nodo.
+Un ejemplo de uso del comando kubectl drain podría ser:
+
+kubectl drain my-node --ignore-daemonsets --force
+Este comando drenaría el nodo llamado "my-node", ignorando los DaemonSets y forzando el drenaje incluso si hay pods que no se pueden eliminar normalmente. Recuerda que drenar un nodo puede causar la reprogramación de los pods en otros nodos del clúster, por lo que debes realizarlo con precaución y asegurarte de que tus aplicaciones puedan tolerar la pérdida temporal de los pods en el nodo drenado.
+
+kubectl uncordon:
+kubectl uncordon <nombre-del-nodo>: Este comando "descordona" un nodo previamente drenado, lo que permite que nuevos pods sean programados en él nuevamente. Es útil después de realizar mantenimiento en un nodo y quieres que vuelva a estar en servicio.
+kubectl scale:
+kubectl scale deployment/<nombre-del-despliegue> --replicas=<número-de-replicas>: Este comando escala horizontalmente un despliegue, ajustando el número de réplicas que se están ejecutando. Puedes aumentar o disminuir el número de réplicas según sea necesario.
+kubectl label y kubectl annotate:
+kubectl label <tipo-de-recurso> <nombre-del-recurso> <clave>=<valor>: Añade una etiqueta a un recurso.
+kubectl annotate <tipo-de-recurso> <nombre-del-recurso> <clave>=<valor>: Añade una anotación a un recurso.
+Estos comandos son útiles para agregar metadatos adicionales a los recursos, lo que facilita la organización y el filtrado de los recursos.
+kubectl create secret y kubectl delete secret:
+kubectl create secret generic <nombre-del-secreto> --from-literal=<clave>=<valor>: Crea un secreto en el clúster Kubernetes a partir de literales.
+kubectl delete secret <nombre-del-secreto>: Elimina un secreto del clúster Kubernetes.
+kubectl rollout restart:
+kubectl rollout restart deployment/<nombre-del-despliegue>: Reinicia todos los pods de un despliegue, creando nuevas réplicas y eliminando las antiguas. Útil para aplicar cambios de configuración o de imagen de manera rápida.
+kubectl logs:
+kubectl logs <nombre-del-pod> -c <nombre-del-contenedor>: Muestra los logs de un contenedor específico dentro de un pod.
+kubectl logs <nombre-del-pod> --tail=<número-de-líneas>: Muestra un número específico de líneas de los logs del pod.
+kubectl logs <nombre-del-pod> -f: Muestra en tiempo real los logs de un pod.
+Estos son solo algunos ejemplos de comandos adicionales de kubectl que pueden ser útiles en diversas situaciones de administración y operación de clústeres Kubernetes. Cada uno de estos comandos tiene varias opciones y flags que puedes explorar en la documentación oficial de Kubernetes para adaptarlos a tus necesidades específicas.
+
+User
+comandos mas usados kubectl
+ChatGPT
+Aquí tienes una lista de algunos de los comandos más usados de kubectl que te serán útiles en tu día a día mientras trabajas con clústeres de Kubernetes:
+
+kubectl get:
+kubectl get pods: Lista todos los pods en el clúster.
+kubectl get deployments: Lista todos los despliegues en el clúster.
+kubectl get services: Lista todos los servicios en el clúster.
+kubectl get nodes: Lista todos los nodos en el clúster.
+kubectl describe:
+kubectl describe pod <nombre-del-pod>: Muestra detalles sobre un pod específico.
+kubectl describe deployment <nombre-del-despliegue>: Muestra detalles sobre un despliegue específico.
+kubectl describe service <nombre-del-servicio>: Muestra detalles sobre un servicio específico.
+kubectl create y kubectl apply:
+kubectl create -f <archivo-o-directorio>: Crea recursos a partir de un archivo YAML.
+kubectl apply -f <archivo-o-directorio>: Crea o actualiza recursos a partir de un archivo YAML.
+kubectl delete:
+kubectl delete pod <nombre-del-pod>: Elimina un pod específico.
+kubectl delete deployment <nombre-del-despliegue>: Elimina un despliegue específico.
+kubectl delete service <nombre-del-servicio>: Elimina un servicio específico.
+kubectl logs:
+kubectl logs <nombre-del-pod>: Muestra los logs de un pod específico.
+kubectl logs -f <nombre-del-pod>: Muestra en tiempo real los logs de un pod.
+kubectl exec:
+kubectl exec -it <nombre-del-pod> -- <comando>: Ejecuta un comando dentro de un pod específico.
+kubectl port-forward:
+kubectl port-forward <nombre-del-pod> <puerto-local>:<puerto-remoto>: Reenvía puertos de un pod a tu máquina local.
+kubectl edit:
+kubectl edit <tipo-de-recurso> <nombre-del-recurso>: Edita un recurso en vivo en un editor de texto.
+kubectl rollout:
+kubectl rollout status deployment/<nombre-del-despliegue>: Muestra el estado de un despliegue.
+kubectl rollout history deployment/<nombre-del-despliegue>: Muestra el historial de revisiones de un despliegue.
+kubectl rollout undo deployment/<nombre-del-despliegue>: Revierte un despliegue a una revisión anterior.
+
+*******************************************************************************************************************************
+TROUBLE SHOOTING:
+
+Para solucionar problemas en Azure Kubernetes Service (AKS), puedes utilizar varios comandos que te ayudarán a diagnosticar y resolver problemas. Aquí tienes una guía con comandos útiles para el troubleshooting de AKS:
+
+### 1. **Verificar el Estado del Clúster AKS**
+```bash
+az aks show --resource-group <ResourceGroupName> --name <ClusterName>
+```
+Este comando muestra información detallada sobre el clúster AKS, incluyendo su estado.
+
+### 2. **Listar Nodos en el Clúster**
+```bash
+kubectl get nodes
+```
+Proporciona una lista de todos los nodos en el clúster, así como su estado.
+
+### 3. **Describir un Nodo Específico**
+```bash
+kubectl describe node <NodeName>
+```
+Muestra detalles específicos sobre un nodo, incluyendo eventos recientes que pueden indicar problemas.
+
+### 4. **Verificar el Estado de los Pods**
+```bash
+kubectl get pods --all-namespaces
+```
+Enumera todos los pods en todos los espacios de nombres, mostrando su estado actual.
+
+### 5. **Describir un Pod Específico**
+```bash
+kubectl describe pod <PodName> -n <Namespace>
+```
+Proporciona información detallada sobre un pod, incluidos eventos y mensajes de error.
+
+### 6. **Revisar los Logs de un Pod**
+```bash
+kubectl logs <PodName> -n <Namespace>
+```
+Muestra los registros del contenedor principal del pod. Si hay múltiples contenedores, puedes especificar cuál:
+```bash
+kubectl logs <PodName> -n <Namespace> -c <ContainerName>
+```
+
+### 7. **Depuración de Pods**
+Si necesitas ejecutar comandos dentro de un pod para diagnosticar problemas:
+```bash
+kubectl exec -it <PodName> -n <Namespace> -- /bin/bash
+```
+Esto abre una sesión interactiva dentro del contenedor.
+
+### 8. **Verificar Servicios y Endpoints**
+```bash
+kubectl get services -n <Namespace>
+kubectl get endpoints -n <Namespace>
+```
+Estos comandos ayudan a verificar si los servicios y endpoints están configurados correctamente.
+
+### 9. **Verificar Configuraciones de Ingress**
+```bash
+kubectl get ingress -n <Namespace>
+kubectl describe ingress <IngressName> -n <Namespace>
+```
+Para asegurarte de que las reglas de Ingress están configuradas y funcionando correctamente.
+
+### 10. **Chequear la Salud del Clúster con AKS Diagnoser**
+AKS Diagnoser es una herramienta integrada para identificar problemas comunes en el clúster.
+```bash
+az aks kanalyze -g <ResourceGroupName> -n <ClusterName>
+```
+Esta herramienta ejecuta una serie de diagnósticos en el clúster y proporciona recomendaciones.
+
+### 11. **Actualizar Herramientas y Comandos de Azure CLI**
+Asegúrate de que tienes la última versión de las herramientas de Azure CLI:
+```bash
+az upgrade
+```
+
+### 12. **Verificar el Estado del Clúster con kubectl top**
+Para monitorear el uso de recursos en tiempo real:
+```bash
+kubectl top nodes
+kubectl top pods -n <Namespace>
+```
+### **Revisión de Eventos**
+
+#### 1. **Ver Eventos en el Clúster**
+Para ver todos los eventos en el clúster:
+```bash
+kubectl get events --all-namespaces
+```
+Para ver los eventos en un espacio de nombres específico:
+```bash
+kubectl get events -n <Namespace>
+```
+
+#### 2. **Describir Recursos con Eventos**
+Para describir un recurso específico (como un pod) y ver eventos relacionados:
+```bash
+kubectl describe pod <PodName> -n <Namespace>
+```
+También puedes describir otros recursos como nodos, servicios, etc.:
+```bash
+kubectl describe node <NodeName>
+kubectl describe service <ServiceName> -n <Namespace>
+```
+
+### **Aumentar Recursos con ResourceQuota**
+
+`ResourceQuota` es una herramienta en Kubernetes que te permite limitar los recursos que un espacio de nombres puede utilizar.
+
+#### 1. **Crear un ResourceQuota**
+Primero, crea un archivo YAML para definir la cuota de recursos. Por ejemplo:
+```yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: example-quota
+  namespace: <Namespace>
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: 8Gi
+    limits.cpu: "10"
+    limits.memory: 20Gi
+    pods: "10"
+    services: "5"
+```
+Luego, aplica esta configuración:
+```bash
+kubectl apply -f resourcequota.yaml
+```
+
+#### 2. **Verificar ResourceQuota**
+Para ver la `ResourceQuota` en un espacio de nombres:
+```bash
+kubectl get resourcequota -n <Namespace>
+```
+Para describir una `ResourceQuota` específica y ver los detalles:
+```bash
+kubectl describe resourcequota <QuotaName> -n <Namespace>
+```
+
+#### 3. **Actualizar ResourceQuota**
+Para actualizar una `ResourceQuota`, edita el archivo YAML y aplica los cambios:
+```bash
+kubectl apply -f resourcequota.yaml
+```
+
+### **Comandos Adicionales Útiles**
+
+#### 1. **Escalar un Deployment**
+Para escalar un `Deployment` a un número específico de réplicas:
+```bash
+kubectl scale deployment <DeploymentName> --replicas=<Number> -n <Namespace>
+```
+
+#### 2. **Reiniciar un Deployment**
+Para forzar el reinicio de un `Deployment` (esto se hace generalmente para que recoja nuevas configuraciones o actualizaciones de imágenes):
+```bash
+kubectl rollout restart deployment <DeploymentName> -n <Namespace>
+```
+
+#### 3. **Verificar el Estado de los Rollouts**
+Para verificar el estado del despliegue y los rollouts:
+```bash
+kubectl rollout status deployment <DeploymentName> -n <Namespace>
+```
+
+#### 4. **Listar ConfigMaps y Secrets**
+Para listar todos los `ConfigMaps` y `Secrets` en un espacio de nombres:
+```bash
+kubectl get configmaps -n <Namespace>
+kubectl get secrets -n <Namespace>
+```
+
+#### 5. **Describir ConfigMaps y Secrets**
+Para describir un `ConfigMap` o `Secret` específico:
+```bash
+kubectl describe configmap <ConfigMapName> -n <Namespace>
+kubectl describe secret <SecretName> -n <Namespace>
+```
+
+#### 6. **Ver Recursos Utilizados por Pod**
+Para ver los recursos utilizados por cada pod:
+```bash
+kubectl top pods -n <Namespace>
+```
+Para ver los recursos utilizados por cada nodo:
+```bash
+kubectl top nodes
+```
+
+
+
+
 
 
 
