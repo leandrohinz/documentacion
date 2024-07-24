@@ -1329,6 +1329,16 @@ Para ver los recursos utilizados por cada nodo:
 ```bash
 kubectl top nodes
 ```
+Para ver los pdb (pod disruptio budget)
+kubectl kubectl get pdb -n evd-dw (namespace)
+-------
+Para ver backups de velero y demas
+velero schedule get -n velero-system
+
+velero backup get -n velero-system | grep prod-cia-gis-ml-server-05-main
+
+kubectl get backup -n velero-system | grep prod-cia-gis-ml-server-05-main
+
 
 
 
